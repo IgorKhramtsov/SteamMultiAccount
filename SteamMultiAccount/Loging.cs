@@ -10,54 +10,66 @@ using System.Drawing;
 
 namespace SteamMultiAccount
 {
+    enum LogType
+    {
+        Error,
+        Info,
+        Warning,
+        Debug,
+        User
+    }
     internal class Loging
     {
-        private readonly RichTextBox _textbox;
-        internal Loging(RichTextBox tbox)
+        private string _rtfText;
+        internal Loging(string RtfText)
         {
-            _textbox = tbox;
+            _rtfText = RtfText;
         }
 
-        internal void LogError(string message, [CallerMemberName] string FunctionName = "")
+        internal void Log(string message, LogType type, out string Rtf, [CallerMemberName] string functionName = "")
         {
-            string logMess = "   [ERROR]  " + FunctionName + " () " + message;
-            Log(logMess, Color.DarkRed);
+            string logMess;
+            switch (type)
+            {
+                case LogType.Debug:
+                    logMess = "   [DEBUG]  " + functionName + "() " + message;
+                    Log(logMess, Color.DarkViolet);
+                    break;
+                case LogType.Error:
+                    logMess = "   [ERROR]  " + functionName + " () " + message;
+                    Log(logMess, Color.DarkRed);
+                    break;
+                case LogType.Info:
+                    logMess = "    [INFO]    " + functionName + " () " + message;
+                    Log(logMess, Color.Blue);
+                    break;
+                case LogType.User:
+                    logMess = "   [USER]  " + message;
+                    Log(logMess, Color.Black);
+                    break;
+                case LogType.Warning:
+                    logMess = "[WARNING]" + functionName + "() " + message;
+                    Log(logMess, Color.Orange);
+                    break;
+            }
+            Rtf = _rtfText;
         }
-        internal void LogInfo(string message, [CallerMemberName] string FunctionName = "")
-        {
-            string logMess = "    [INFO]    " + FunctionName + " () " + message;
-            Log(logMess, Color.Blue);
-        }
-        internal void LogWarning(string message, [CallerMemberName] string FunctionName = "")
-        {
-            string logMess = "[WARNING]" + FunctionName + "() " + message;
-            Log(logMess, Color.Orange);
-        }
-        internal void LogDebug(string message, [CallerMemberName] string FunctionName = "")
-        {
-            string logMess = "   [DEBUG]  " + FunctionName + "() " + message;
-            Log(logMess, Color.DarkViolet);
-        }
-
-        internal void LogUser(string message)
-        {
-            string logMess = "   [USER]  " + message;
-            Log(logMess, Color.Black);
-        }
-
         internal void Log(string message,Color col)
         {
             if (string.IsNullOrEmpty(message))
                 return;
             string loggedMessage = DateTime.Now + " " + message;
-            
-            _textbox.SelectionStart = _textbox.TextLength;
-            _textbox.SelectionLength = 0;
+            RichTextBox _rBox = new RichTextBox {Rtf = _rtfText};
 
-            _textbox.SelectionColor = col;
-            _textbox.AppendText(loggedMessage);
-            _textbox.SelectionColor = _textbox.ForeColor;
-            _textbox.AppendText(Environment.NewLine);
+            _rBox.SelectionStart = _rBox.TextLength;
+            _rBox.SelectionLength = 0;
+
+            _rBox.SelectionColor = col;
+            _rBox.AppendText(loggedMessage);
+            _rBox.SelectionColor = _rBox.ForeColor;
+            _rBox.AppendText(Environment.NewLine);
+            _rtfText = _rBox.Rtf;
+            _rBox.Dispose();
         }
 
         internal static void LogToFile(string message, string botname="Programm")

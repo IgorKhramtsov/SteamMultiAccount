@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
+using System.Threading;
 
 namespace SteamMultiAccount
 {
@@ -15,6 +16,7 @@ namespace SteamMultiAccount
     {
         internal const string ConfigDirectory = "config";
         internal const string DebugDirectory = "debug";
+        internal const string ServerLists = ConfigDirectory + "/servers.json";
         public SMAForm()
         {
             InitializeComponent();//Инициализация компонентов формы 
@@ -34,6 +36,11 @@ namespace SteamMultiAccount
             foreach (var configFile in Directory.EnumerateFiles(ConfigDirectory, "*.json"))
             {
                 string botName = Path.GetFileNameWithoutExtension(configFile);
+                switch (botName)
+                {
+                    case "servers":
+                        continue;
+                }
                 if (botName == null)
                     return;
                 Bot bot = new Bot(botName);
@@ -110,7 +117,7 @@ namespace SteamMultiAccount
                 if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
                     return;
                 bot.Response(textBox1.Text);
-                bot.logging.LogUser(textBox1.Text);
+                bot.Log(textBox1.Text, LogType.User);
                 UpdateLogBox();
                 textBox1.Text = string.Empty;
             }
@@ -121,14 +128,7 @@ namespace SteamMultiAccount
             Bot bot;
             if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
                 return;
-            LogBoxReplace(bot.getLogBox(), LogBox);
-        }
-
-        public static void LogBoxReplace(RichTextBox first, RichTextBox second)
-        {
-            string file = Path.GetTempFileName();
-            first.SaveFile(file);
-            second.LoadFile(file);
+            LogBox.Rtf = bot.getLogBoxText();
         }
 
         private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
@@ -136,7 +136,6 @@ namespace SteamMultiAccount
             Bot bot;
             if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
                 return;
-            bot.BotConfig.Delete();
             bot.Delete();
             bot = null;
             BotList.Items.Remove(BotList.SelectedItem);
