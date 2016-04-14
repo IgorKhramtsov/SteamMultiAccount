@@ -34,6 +34,8 @@ namespace SteamMultiAccount
 
         [JsonProperty]
         internal uint cellID { get; set; } = 0;
+        [JsonProperty(Required = Required.DisallowNull)]
+        public bool Enabled { get; set; } = true;
         internal string Path { get; set; }
         internal const uint ServerFileLifeTime = 60;
         internal Config(string path)

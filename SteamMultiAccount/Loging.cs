@@ -49,7 +49,7 @@ namespace SteamMultiAccount
                     Log(logMess, Color.Blue);
                     break;
                 case LogType.User:
-                    logMess = "   [USER]  " + message;
+                    logMess = "   [USER]   " + message;
                     Log(logMess, Color.Black);
                     break;
                 case LogType.Warning:

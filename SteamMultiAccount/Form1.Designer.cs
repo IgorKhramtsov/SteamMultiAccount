@@ -38,6 +38,7 @@
             this.LogBox = new System.Windows.Forms.RichTextBox();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.panel2 = new System.Windows.Forms.Panel();
+            this.ChatButton = new System.Windows.Forms.Button();
             this.panel3 = new System.Windows.Forms.Panel();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.contextMenuStrip1.SuspendLayout();
@@ -111,6 +112,8 @@
             this.LogBox.BackColor = System.Drawing.SystemColors.Window;
             this.LogBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.LogBox.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.LogBox.HideSelection = false;
+            this.LogBox.ImeMode = System.Windows.Forms.ImeMode.On;
             this.LogBox.Location = new System.Drawing.Point(1, 0);
             this.LogBox.Margin = new System.Windows.Forms.Padding(0);
             this.LogBox.Name = "LogBox";
@@ -136,6 +139,7 @@
             // 
             // panel2
             // 
+            this.panel2.Controls.Add(this.ChatButton);
             this.panel2.Controls.Add(this.panel3);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel2.Location = new System.Drawing.Point(0, 0);
@@ -143,6 +147,17 @@
             this.panel2.Name = "panel2";
             this.panel2.Size = new System.Drawing.Size(269, 379);
             this.panel2.TabIndex = 2;
+            // 
+            // ChatButton
+            // 
+            this.ChatButton.Location = new System.Drawing.Point(126, 12);
+            this.ChatButton.Name = "ChatButton";
+            this.ChatButton.Size = new System.Drawing.Size(140, 31);
+            this.ChatButton.TabIndex = 2;
+            this.ChatButton.Text = "Chat";
+            this.ChatButton.UseVisualStyleBackColor = true;
+            this.ChatButton.Visible = false;
+            this.ChatButton.Click += new System.EventHandler(this.ChatButton_Click);
             // 
             // panel3
             // 
@@ -194,6 +209,7 @@
         private System.Windows.Forms.ToolStripMenuItem changeToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
         private System.Windows.Forms.Timer timer1;
+        private System.Windows.Forms.Button ChatButton;
     }
 }
 

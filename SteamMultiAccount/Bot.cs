@@ -11,24 +11,34 @@ using System.Security.Cryptography;
 
 namespace SteamMultiAccount
 {
+    enum eCommands
+    {
+        nickname
+    }
     internal sealed class Bot
     {
         private const ushort CallbackSleep = 1000;
 
-        private static bool isRunning = false;
+        internal bool isRunning = false;
         internal bool needAuthCode = false;
+        private bool isManualDisconnect = false;
         private string authCode = string.Empty;
-        private string sentryPath;
+        private readonly string sentryPath;
+        private string _logboxText;
+        internal static readonly string[] Commands = new string[3] {"nickname ","FriendList","send "};
 
+        internal static uint cellID = 0;
+        internal static readonly uint loginID = MsgClientLogon.ObfuscationMask;
         internal static readonly Dictionary<string, Bot> Bots = new Dictionary<string, Bot>();
+        internal        readonly List<SteamID> FriendList = new List<SteamID>();
         internal readonly string BotName;
         internal readonly string BotPath;
         internal readonly Config BotConfig;
-        internal Loging logging;
+        internal readonly Loging logging;
         internal readonly SteamClient steamClient;
         internal readonly SteamUser steamUser;
+        internal readonly SteamFriends steamFriends;
         internal readonly CallbackManager callbackManager;
-        private string _logboxText;
 
         internal Bot(string botName)
         {
@@ -42,6 +52,7 @@ namespace SteamMultiAccount
             BotConfig = new Config(BotPath);
             steamClient = new SteamClient();
             steamUser = steamClient.GetHandler<SteamUser>();
+            steamFriends = steamClient.GetHandler<SteamFriends>();
             callbackManager = new CallbackManager(steamClient);
 
             BotConfig = BotConfig.Load(logging);
@@ -52,30 +63,81 @@ namespace SteamMultiAccount
             callbackManager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
             callbackManager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
             callbackManager.Subscribe<SteamUser.UpdateMachineAuthCallback>(OnMachinAuth);
+            callbackManager.Subscribe<SteamUser.AccountInfoCallback>(OnAccountInfo);
 
-            RefreshCMs(BotConfig.cellID).Wait();
+            callbackManager.Subscribe<SteamFriends.FriendMsgCallback>(OnFriendMessage);
+            callbackManager.Subscribe<SteamFriends.FriendsListCallback>(OnFriendList);
+
+            NetDebug();
+
+            if (cellID == 0 && BotConfig.cellID != 0)
+                cellID = BotConfig.cellID;
+
+            RefreshCMs(cellID).Wait();
 
             if (Bots.ContainsKey(BotName))
                 return;
             Bots[BotName] = this;
+            if(BotConfig.Enabled)
             Start().Forget();
         }
 
-        internal async void Response(string message)
+        internal async Task<string> Response(string message)
         {
+            if (string.IsNullOrEmpty(message))
+                return null;
+            string Ret = string.Empty;
             if (needAuthCode && message.Length == 5)
             {
                 needAuthCode = false;
                 authCode = message;
                 steamClient.Connect();
-                return;
+                return null;
             }
+            if (message.Contains(" "))
+            {
+                string[] args = message.Split(' ');
+                switch (args[0])
+                {
+                    case "nickname":
+                        await steamFriends.SetPersonaName(message.Substring("nickname ".Length));
+                        Ret = ("Nickname changed to \"" + message.Substring("nickname ".Length) + "\"");
+                        break;
+                    case "send":
+                        UInt64 steamid;
+                        UInt64.TryParse(args[1], out steamid);
+                        steamFriends.SendChatMessage(steamid, EChatEntryType.ChatMsg, message.Substring((args[0]+args[1]).Length+2));
+                        break;
+                    default:
+                        Ret = "Hello suchechka";
+                        break;
+                }
+            }
+            else
             switch (message)
             {
+                case "FriendList":
+                    Ret = FriendListShow();
+                    break;
                 default:
+                    Ret = "Hello suchechka";
                     break;
             }
-
+            Log(Ret, LogType.Info);
+            return Ret;
+        }
+        internal async void Response(string message, SteamID Sender)
+        {
+            steamFriends.SendChatMessage(Sender, EChatEntryType.ChatMsg, await Response(message));
+        }
+        internal string FriendListShow()
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (var friend in FriendList)
+            {
+                sb.Append(Environment.NewLine+ "[" + friend.ConvertToUInt64() + "] " + steamFriends.GetFriendPersonaName(friend));
+            }
+            return sb.ToString();
         }
         /*
         //
@@ -108,6 +170,7 @@ namespace SteamMultiAccount
                 Username = BotConfig.Login,
                 Password = BotConfig.Password,
                 AuthCode = authCode,
+                LoginID = loginID,
                 SentryFileHash = sentryHash
             });
         }
@@ -116,6 +179,8 @@ namespace SteamMultiAccount
             if (needAuthCode)
                 return;
             Log("Disconnected from steam",LogType.Info);
+            if (!isManualDisconnect)
+                steamClient.Connect();
             isRunning = false;
         }
         internal async void OnLoggedOn(SteamUser.LoggedOnCallback callback)
@@ -135,7 +200,6 @@ namespace SteamMultiAccount
             }
             BotConfig.SetCellId(callback.CellID);
             Log("Successfully logged on!",LogType.Info);
-
         }
         internal async void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
@@ -174,6 +238,30 @@ namespace SteamMultiAccount
                 });
             Log("Updating successfully", LogType.Info);
         }
+        internal async void OnAccountInfo(SteamUser.AccountInfoCallback callback)
+        {
+            steamFriends.SetPersonaState(EPersonaState.Online);
+        }
+        internal async void OnFriendMessage(SteamFriends.FriendMsgCallback callback)
+        {
+            if(callback.EntryType == EChatEntryType.ChatMsg)
+            Response(callback.Message, callback.Sender);
+        }
+        internal async void OnFriendList(SteamFriends.FriendsListCallback callback)
+        {
+            if (!callback.FriendList.Any())
+                return;
+            foreach (var friend in callback.FriendList)
+            {
+                if (friend.Relationship == EFriendRelationship.RequestRecipient)
+                { 
+                    steamFriends.AddFriend(friend.SteamID);
+                    Log(steamFriends.GetFriendPersonaName(friend.SteamID)+" was added to your friends list",LogType.Info);
+                }
+                if (friend.SteamID.IsIndividualAccount)
+                    FriendList.Add(friend.SteamID);
+            }
+        }
         /*
         //
         // Services
@@ -188,6 +276,21 @@ namespace SteamMultiAccount
             }
             Log("Connecting to steam...", LogType.Info);
             steamClient.Connect();
+        }
+        private void NetDebug()
+        {
+            if (!Listener.NetHookAlreadyInitialized && Directory.Exists(SMAForm.DebugDirectory))
+            {
+                try
+                {
+                    steamClient.DebugNetworkListener = new NetHookNetworkListener(SMAForm.DebugDirectory);
+                    Listener.NetHookAlreadyInitialized = true;
+                }
+                catch (Exception e)
+                {
+                    Log(e.Message,LogType.Error);
+                }
+            }
         }
         private void CallbacksHandler()
         {
