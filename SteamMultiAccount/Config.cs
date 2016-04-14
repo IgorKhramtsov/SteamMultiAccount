@@ -33,7 +33,7 @@ namespace SteamMultiAccount
         public string Password { get; set; } = null;
 
         [JsonProperty]
-        internal uint cellID { get; private set; } = 0;
+        internal uint cellID { get; set; } = 0;
         internal string Path { get; set; }
         internal const uint ServerFileLifeTime = 60;
         internal Config(string path)
@@ -59,7 +59,6 @@ namespace SteamMultiAccount
             config.Path = Path;
             return config;
         }
-
         internal void Save()
         {
             lock (Path)
@@ -71,7 +70,6 @@ namespace SteamMultiAccount
                 }
             }
         }
-
         internal void Delete()
         {
             if (!File.Exists(Path))
@@ -85,7 +83,6 @@ namespace SteamMultiAccount
                 }
             }
         }
-
         internal static void ServerListSave(SteamKit2.SmartCMServerList serverList)
         {
             if (!File.Exists(SMAForm.ServerLists))
@@ -117,7 +114,6 @@ namespace SteamMultiAccount
                 }
             }
         }
-
         internal static void ServerListLoad(SteamKit2.SmartCMServerList serverlist)
         {
             serverlist.Clear();
@@ -129,6 +125,12 @@ namespace SteamMultiAccount
             {
                 serverlist.TryAdd(new System.Net.IPEndPoint(server.Adress, server.Port));//Adding every serialized server to CMServerList
             }
+        }
+
+        internal void SetCellId(uint _cellID)
+        {
+            cellID = _cellID;
+            Save();
         }
         private Config() { }
     }

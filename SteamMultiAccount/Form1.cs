@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
 using System.Threading;
+using SteamKit2;
 
 namespace SteamMultiAccount
 {
@@ -17,13 +18,24 @@ namespace SteamMultiAccount
         internal const string ConfigDirectory = "config";
         internal const string DebugDirectory = "debug";
         internal const string ServerLists = ConfigDirectory + "/servers.json";
+        internal const string BotsData = ConfigDirectory + "/botData";
         public SMAForm()
         {
             InitializeComponent();//Инициализация компонентов формы 
             if (!Directory.Exists(ConfigDirectory))
                 Directory.CreateDirectory(ConfigDirectory);
+            if (Directory.Exists(DebugDirectory)) {
+                Directory.Delete(DebugDirectory, true);
+                Thread.Sleep(1000); // Dirty workaround giving Windows some time to sync
+            }
             if (!Directory.Exists(DebugDirectory))
                 Directory.CreateDirectory(DebugDirectory);
+            if (!Directory.Exists(BotsData))
+                Directory.CreateDirectory(BotsData);
+
+            DebugLog.AddListener(new Listener());
+            DebugLog.Enabled = true;
+
             CheckBots();//Ищем конфиг файлы ботов
             if (BotList.Items.Count > 0) BotList.SelectedIndex = 0;//Выбор первого элемента в списке
         }
@@ -123,7 +135,7 @@ namespace SteamMultiAccount
             }
         }
 
-        private void UpdateLogBox()
+        internal void UpdateLogBox()
         {
             Bot bot;
             if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
@@ -143,6 +155,19 @@ namespace SteamMultiAccount
                 BotList.SelectedIndex = 0;
             else
                 BotList.SelectedIndex = -1;
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            UpdateLogBox();
+        }
+    }
+
+    class Listener : IDebugListener
+    {
+        public void WriteLine(string category, string message)
+        {
+            Loging.DebugLogToFile(DateTime.Now + " [" + category + "]: " + message);
         }
     }
 }

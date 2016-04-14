@@ -29,18 +29,23 @@ namespace SteamMultiAccount
         internal void Log(string message, LogType type, out string Rtf, [CallerMemberName] string functionName = "")
         {
             string logMess;
+#if !DEBUG
+            functionName = "";
+#else
+            functionName += "() ";
+#endif
             switch (type)
             {
                 case LogType.Debug:
-                    logMess = "   [DEBUG]  " + functionName + "() " + message;
+                    logMess = "   [DEBUG]  " + functionName + message;
                     Log(logMess, Color.DarkViolet);
                     break;
                 case LogType.Error:
-                    logMess = "   [ERROR]  " + functionName + " () " + message;
+                    logMess = "   [ERROR]  " + functionName + message;
                     Log(logMess, Color.DarkRed);
                     break;
                 case LogType.Info:
-                    logMess = "    [INFO]    " + functionName + " () " + message;
+                    logMess = "    [INFO]    " + functionName + message;
                     Log(logMess, Color.Blue);
                     break;
                 case LogType.User:
@@ -48,7 +53,7 @@ namespace SteamMultiAccount
                     Log(logMess, Color.Black);
                     break;
                 case LogType.Warning:
-                    logMess = "[WARNING]" + functionName + "() " + message;
+                    logMess = "[WARNING]" + functionName + message;
                     Log(logMess, Color.Orange);
                     break;
             }
@@ -72,6 +77,20 @@ namespace SteamMultiAccount
             _rBox.Dispose();
         }
 
+        internal static void DebugLogToFile(string message)
+        {
+            message += Environment.NewLine;
+            string path = "debug/SteamKitLog.txt";
+            lock (path)
+            {
+                try
+                {
+                    File.AppendAllText(path, message);
+                } catch { 
+
+                }
+            }
+        }
         internal static void LogToFile(string message, string botname="Programm")
         {
             string path = "log.txt";
