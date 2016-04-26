@@ -21,7 +21,8 @@ namespace SteamMultiAccount
         internal const string BotsData = ConfigDirectory + "/botData";
         public SMAForm()
         {
-            InitializeComponent();//Инициализация компонентов формы 
+            InitializeComponent();
+            StatusLabel.Text = string.Empty;
             if (!Directory.Exists(ConfigDirectory))
                 Directory.CreateDirectory(ConfigDirectory);
             if (Directory.Exists(DebugDirectory)) {
@@ -36,10 +37,10 @@ namespace SteamMultiAccount
             DebugLog.AddListener(new Listener(null));
             DebugLog.Enabled = true;
 
-            textBox1.AutoCompleteCustomSource.AddRange(Bot.Commands);
+            textBox1.AutoCompleteCustomSource.AddRange(Bot.Commands.Keys.ToArray());
 
-            CheckBots();//Ищем конфиг файлы ботов
-            if (BotList.Items.Count > 0) BotList.SelectedIndex = 0;//Выбор первого элемента в списке
+            CheckBots();//Looking for bot configs
+            if (BotList.Items.Count > 0) BotList.SelectedIndex = 0;//Select first element in list
         }
 
         private void CheckBots()
@@ -47,22 +48,28 @@ namespace SteamMultiAccount
             if (!Directory.Exists(ConfigDirectory))
                 return;
             if(Directory.GetFiles(ConfigDirectory,"*.json").Length>0)
-            foreach (var configFile in Directory.EnumerateFiles(ConfigDirectory, "*.json"))
             {
-                string botName = Path.GetFileNameWithoutExtension(configFile);
-                switch (botName)
+                BotList.BeginUpdate();
+                foreach (var configFile in Directory.EnumerateFiles(ConfigDirectory, "*.json"))
                 {
-                    case "servers":
-                        continue;
+                    string botName = Path.GetFileNameWithoutExtension(configFile);
+                    switch (botName)
+                    {
+                        case "servers":
+                            continue;
+                    }
+                    if (botName == null)
+                        return;
+                    Bot bot = new Bot(botName);
+                    BotList.Items.Add(botName);
                 }
-                if (botName == null)
-                    return;
-                Bot bot = new Bot(botName);
-                BotList.Items.Add(botName);
+                BotList.EndUpdate();
             }
         }
         private void LogBox_Click(object sender, EventArgs e)
         {
+            if (LogBox.SelectionLength > 0)
+                return;
             textBox1.Select();
         }
         private void addToolStripMenuItem_Click(object sender, EventArgs e)
@@ -97,20 +104,18 @@ namespace SteamMultiAccount
         }
         private void BotList_SelectedIndexChanged(object sender, EventArgs e)
         {
+            Bot bot;
             if ((sender as ListBox).SelectedIndex == -1)
-                LogBox.Clear();
-            else
-            {
-                Bot bot;
-                if (!Bot.Bots.TryGetValue((sender as ListBox).SelectedItem.ToString(), out bot))
-                    return; 
-                UpdateLogBox(bot);
-                CheckButtonsStatus(bot);
-            }
+                bot = null;
+            else            
+            Bot.Bots.TryGetValue((sender as ListBox).SelectedItem.ToString(), out bot);
+
+            UpdateLogBox(bot);
+            UpdateStatus(bot);
+            CheckButtonsStatus(bot);
         }
         private void textBox1_KeyDown(object sender, KeyEventArgs e)
         {
-
             if (e.KeyCode == Keys.Enter)
             {
                 if (string.IsNullOrEmpty(textBox1.Text))
@@ -147,20 +152,8 @@ namespace SteamMultiAccount
                 return;
 
             UpdateLogBox(bot);
+            UpdateStatus(bot);
             CheckButtonsStatus(bot);
-        }
-        private void ChatButton_Click(object sender, EventArgs e)
-        {
-            if (BotList.SelectedItem == null)
-                return;
-            Bot bot;
-            if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
-                return;
-            if (bot.isRunning && bot.steamClient.IsConnected)
-            {
-                ChatForm chatForm = new ChatForm(bot);
-                chatForm.Show();
-            }
         }
 
         /*
@@ -170,7 +163,28 @@ namespace SteamMultiAccount
         */
         internal void UpdateLogBox(Bot bot)
         {
-            LogBox.Rtf = bot.getLogBoxText();
+            if (bot == null)
+            {
+                LogBox.Clear();
+                return;
+            }
+            string text = bot.getLogBoxText();
+            if (LogBox.Rtf == text)
+                return;
+            LogBox.Rtf = text;
+            LogBox.SelectionStart = LogBox.Text.Length;
+            LogBox.ScrollToCaret();
+        }
+        internal void UpdateStatus(Bot bot)
+        {
+            if (bot == null)
+            { 
+                StatusLabel.Text = string.Empty;
+                return;
+            }
+            if (StatusLabel.Text == bot.Status)
+                return;
+            StatusLabel.Text = bot.Status;
         }
         public void BotListAdd(string botName)
         {
@@ -180,10 +194,12 @@ namespace SteamMultiAccount
         }
         internal void CheckButtonsStatus(Bot bot)
         {
-            if (bot.isRunning && bot.steamClient.SteamID != null && bot.steamClient.SteamID.AccountType == EAccountType.Individual)
-                ChatButton.Visible = true;
-            else
-                ChatButton.Visible = false;
+            if (bot == null)
+                return;
+            //if (bot.isRunning && bot.steamClient.SteamID != null && bot.steamClient.SteamID.AccountType == EAccountType.Individual)
+                //ChatButton.Visible = true;
+            //else
+                //ChatButton.Visible = false;
         }
     }
 

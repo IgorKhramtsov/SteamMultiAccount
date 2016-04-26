@@ -34,7 +34,6 @@ namespace SteamMultiAccount
             
             InitializeComponent();
             Init();
-            
         }
         internal void Init()
         {
@@ -51,7 +50,15 @@ namespace SteamMultiAccount
         {
             if (string.IsNullOrEmpty(_botName))
                 return;
-            Bot bot = new Bot(_botName);
+            if(botCreated)
+                new Bot(_botName);
+            else
+            { 
+            Bot bot;
+            if (!Bot.Bots.TryGetValue(_botName, out bot))
+                return;
+            bot.Restart();
+            }
         }
     }
 

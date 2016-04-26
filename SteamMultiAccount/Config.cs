@@ -24,7 +24,7 @@ namespace SteamMultiAccount
         public List<Server> serverlist;
 
     }
-    internal sealed class Config
+    internal class Config
     {
         [JsonProperty]
         public string Login { get; set; } = null;
@@ -34,6 +34,8 @@ namespace SteamMultiAccount
 
         [JsonProperty]
         internal uint cellID { get; set; } = 0;
+        [JsonProperty]
+        internal string loginKey { get; set; } = null;
         [JsonProperty(Required = Required.DisallowNull)]
         public bool Enabled { get; set; } = true;
         internal string Path { get; set; }

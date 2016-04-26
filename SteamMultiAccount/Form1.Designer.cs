@@ -38,7 +38,7 @@
             this.LogBox = new System.Windows.Forms.RichTextBox();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.panel2 = new System.Windows.Forms.Panel();
-            this.ChatButton = new System.Windows.Forms.Button();
+            this.StatusLabel = new System.Windows.Forms.Label();
             this.panel3 = new System.Windows.Forms.Panel();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.contextMenuStrip1.SuspendLayout();
@@ -99,12 +99,12 @@
             this.panel1.Controls.Add(this.LogBox);
             this.panel1.Controls.Add(this.textBox1);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panel1.Location = new System.Drawing.Point(269, 0);
+            this.panel1.Location = new System.Drawing.Point(281, 0);
             this.panel1.Margin = new System.Windows.Forms.Padding(0);
             this.panel1.MinimumSize = new System.Drawing.Size(432, 360);
             this.panel1.Name = "panel1";
             this.panel1.Padding = new System.Windows.Forms.Padding(1, 0, 0, 0);
-            this.panel1.Size = new System.Drawing.Size(435, 379);
+            this.panel1.Size = new System.Drawing.Size(432, 379);
             this.panel1.TabIndex = 1;
             // 
             // LogBox
@@ -119,7 +119,7 @@
             this.LogBox.Name = "LogBox";
             this.LogBox.ReadOnly = true;
             this.LogBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
-            this.LogBox.Size = new System.Drawing.Size(434, 361);
+            this.LogBox.Size = new System.Drawing.Size(431, 361);
             this.LogBox.TabIndex = 1;
             this.LogBox.Text = "";
             this.LogBox.Click += new System.EventHandler(this.LogBox_Click);
@@ -133,31 +133,30 @@
             this.textBox1.Location = new System.Drawing.Point(1, 361);
             this.textBox1.Margin = new System.Windows.Forms.Padding(0);
             this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(434, 18);
+            this.textBox1.Size = new System.Drawing.Size(431, 18);
             this.textBox1.TabIndex = 0;
             this.textBox1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.textBox1_KeyDown);
             // 
             // panel2
             // 
-            this.panel2.Controls.Add(this.ChatButton);
+            this.panel2.Controls.Add(this.StatusLabel);
             this.panel2.Controls.Add(this.panel3);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel2.Location = new System.Drawing.Point(0, 0);
             this.panel2.MinimumSize = new System.Drawing.Size(250, 360);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(269, 379);
+            this.panel2.Size = new System.Drawing.Size(281, 379);
             this.panel2.TabIndex = 2;
             // 
-            // ChatButton
+            // StatusLabel
             // 
-            this.ChatButton.Location = new System.Drawing.Point(126, 12);
-            this.ChatButton.Name = "ChatButton";
-            this.ChatButton.Size = new System.Drawing.Size(140, 31);
-            this.ChatButton.TabIndex = 2;
-            this.ChatButton.Text = "Chat";
-            this.ChatButton.UseVisualStyleBackColor = true;
-            this.ChatButton.Visible = false;
-            this.ChatButton.Click += new System.EventHandler(this.ChatButton_Click);
+            this.StatusLabel.AutoSize = true;
+            this.StatusLabel.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.StatusLabel.Location = new System.Drawing.Point(122, 9);
+            this.StatusLabel.Name = "StatusLabel";
+            this.StatusLabel.Size = new System.Drawing.Size(155, 15);
+            this.StatusLabel.TabIndex = 2;
+            this.StatusLabel.Text = "Farming cards 18 games left";
             // 
             // panel3
             // 
@@ -191,6 +190,7 @@
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
             this.panel2.ResumeLayout(false);
+            this.panel2.PerformLayout();
             this.panel3.ResumeLayout(false);
             this.ResumeLayout(false);
 
@@ -209,7 +209,7 @@
         private System.Windows.Forms.ToolStripMenuItem changeToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
         private System.Windows.Forms.Timer timer1;
-        private System.Windows.Forms.Button ChatButton;
+        private System.Windows.Forms.Label StatusLabel;
     }
 }
 

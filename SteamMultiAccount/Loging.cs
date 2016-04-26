@@ -41,7 +41,7 @@ namespace SteamMultiAccount
                     Log(logMess, Color.DarkViolet);
                     break;
                 case LogType.Error:
-                    logMess = "   [ERROR]  " + functionName + message;
+                    logMess = "  [ERROR]  " + functionName + message;
                     Log(logMess, Color.DarkRed);
                     break;
                 case LogType.Info:
