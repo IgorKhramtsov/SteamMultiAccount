@@ -17,6 +17,7 @@ namespace SteamMultiAccount
         private SMAForm _mainForm;
         private string _botName;
         private bool botCreated;
+        private ConfigPropertyGrid propertyGrid;
         public BotSettings(SMAForm mainForm, string BotName = "")
         {
             _mainForm = mainForm;
@@ -38,9 +39,9 @@ namespace SteamMultiAccount
         internal void Init()
         {
             string path = System.IO.Path.Combine(SMAForm.ConfigDirectory, _botName);
-            Config botConfig = new Config(path);
-            botConfig = botConfig.Load(null);
-            ConfigPropertyGrid propertyGrid = new ConfigPropertyGrid(botConfig);
+            var botConfig = new BotConfig(path);
+            botConfig = botConfig.Load();
+            propertyGrid = new ConfigPropertyGrid(botConfig);
             Controls.Add(propertyGrid);
             if(botCreated)
             _mainForm.BotListAdd(_botName);
@@ -52,7 +53,7 @@ namespace SteamMultiAccount
                 return;
             if(botCreated)
                 new Bot(_botName);
-            else
+            else if(propertyGrid.somethingChange)
             { 
             Bot bot;
             if (!Bot.Bots.TryGetValue(_botName, out bot))
@@ -65,6 +66,7 @@ namespace SteamMultiAccount
     internal sealed class ConfigPropertyGrid : PropertyGrid
     {
         private readonly Config config;
+        public bool somethingChange;
         internal ConfigPropertyGrid(Config conf)
         {
             if (conf == null)
@@ -76,12 +78,14 @@ namespace SteamMultiAccount
 			Dock = DockStyle.Fill;
 			HelpVisible = false;
 			ToolbarVisible = false;
-
         }
 
         protected override void OnPropertyValueChanged(PropertyValueChangedEventArgs e)
         {
+            if (e.OldValue == e)
+                return;
             base.OnPropertyValueChanged(e);
+            somethingChange = true;
             config.Save();
         }
     }

@@ -37,10 +37,13 @@ namespace SteamMultiAccount
             DebugLog.AddListener(new Listener(null));
             DebugLog.Enabled = true;
 
-            textBox1.AutoCompleteCustomSource.AddRange(Bot.Commands.Keys.ToArray());
+            textBox1.AutoCompleteCustomSource.AddRange(Bot.CommandsKeys);
 
             CheckBots();//Looking for bot configs
             if (BotList.Items.Count > 0) BotList.SelectedIndex = 0;//Select first element in list
+            // TODO: Start/Stop button
+            // TODO: Farm start/stop button
+            // TODO: Getting game from gleam.io
         }
 
         private void CheckBots()
@@ -56,6 +59,7 @@ namespace SteamMultiAccount
                     switch (botName)
                     {
                         case "servers":
+                        case "Program":
                             continue;
                     }
                     if (botName == null)
@@ -155,7 +159,6 @@ namespace SteamMultiAccount
             UpdateStatus(bot);
             CheckButtonsStatus(bot);
         }
-
         /*
         //
         // Services
@@ -182,9 +185,17 @@ namespace SteamMultiAccount
                 StatusLabel.Text = string.Empty;
                 return;
             }
-            if (StatusLabel.Text == bot.Status)
+            if(bot.Status == StatusEnum.Farming)
+            { 
+                string text = $"Farming cards {bot.CurrentFarming.Length} games left";
+                if (StatusLabel.Text == text)
+                    return;
+                StatusLabel.Text = text;
                 return;
-            StatusLabel.Text = bot.Status;
+            }
+            if (StatusLabel.Text == Bot.StatusString[(int)bot.Status])
+                return;
+            StatusLabel.Text = Bot.StatusString[(int)bot.Status];
         }
         public void BotListAdd(string botName)
         {
@@ -195,12 +206,60 @@ namespace SteamMultiAccount
         internal void CheckButtonsStatus(Bot bot)
         {
             if (bot == null)
+            {
+                OnOffButton.Visible = false;
+                button1.Visible = false;
                 return;
-            //if (bot.isRunning && bot.steamClient.SteamID != null && bot.steamClient.SteamID.AccountType == EAccountType.Individual)
-                //ChatButton.Visible = true;
-            //else
-                //ChatButton.Visible = false;
+            }
+
+            OnOffButton.Enabled = (bot.Status != StatusEnum.Connecting && bot.initialized);
+            button1.Enabled = (bot.Status != StatusEnum.RefreshGamesToFarm);
+
+            if (bot.CurrentFarming != null && bot.CurrentFarming.Any() && bot.CurrentFarming[0] != 0)
+                button1.Text = "Stop farm";
+            else
+                button1.Text = "Farm";
+
+            if (bot.Status != StatusEnum.Disabled && bot.Status != StatusEnum.Connecting && bot.steamClient.IsConnected && bot.initialized)
+                button1.Visible = true;
+            else
+                button1.Visible = false;
+
+            if (bot.isRunning && bot.steamClient.SteamID != null &&
+                bot.steamClient.SteamID.AccountType == EAccountType.Individual )
+            {
+                OnOffButton.Text = "Disconnect";
+            }
+            else
+            {
+                OnOffButton.Text = "Connect";
+            }
         }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            Bot bot;
+            if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(),out bot))
+            {
+                return;
+            }
+
+            bot.PauseResumeFarm();
+        }
+
+        private void OnOffButton_Click(object sender, EventArgs e)
+        {
+            Bot bot;
+            if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
+                return;
+            bot.PauseResume();
+        }
+
+        /*
+        //
+        // Services
+        //
+        */
     }
 
     class Listener : IDebugListener

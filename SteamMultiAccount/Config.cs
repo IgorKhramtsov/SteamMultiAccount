@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using System.ComponentModel;
 using System.IO;
 
 namespace SteamMultiAccount
@@ -26,18 +27,6 @@ namespace SteamMultiAccount
     }
     internal class Config
     {
-        [JsonProperty]
-        public string Login { get; set; } = null;
-
-        [JsonProperty]
-        public string Password { get; set; } = null;
-
-        [JsonProperty]
-        internal uint cellID { get; set; } = 0;
-        [JsonProperty]
-        internal string loginKey { get; set; } = null;
-        [JsonProperty(Required = Required.DisallowNull)]
-        public bool Enabled { get; set; } = true;
         internal string Path { get; set; }
         internal const uint ServerFileLifeTime = 60;
         internal Config(string path)
@@ -48,20 +37,20 @@ namespace SteamMultiAccount
             }
         }
 
-        internal Config Load(Loging logging = null)
+        internal object Load()
         {
             if (string.IsNullOrEmpty(Path))
                 return null;
-
-            Config config;
+            
             try {
-                config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(Path));
+                var config = JsonConvert.DeserializeObject(File.ReadAllText(Path),this.GetType());
+                if (config != null)
+                    (config as Config).Path = Path;
+                return config;
             } catch(Exception e) {
                 Loging.LogToFile("Cant deserialize config file ("+e.Message+")");
                 return null;
             }
-            config.Path = Path;
-            return config;
         }
         internal void Save()
         {
@@ -98,6 +87,7 @@ namespace SteamMultiAccount
             _serverList.serverlist = new List<ServerList.Server>();
             foreach (var endPoint in serverList.GetAllEndPoints())
             {
+
                 _serverList.serverlist.Add(new ServerList.Server //Adding every server from CMServerList to our server list
                 {
                     Adress = endPoint.Address.Address,
@@ -124,18 +114,64 @@ namespace SteamMultiAccount
             if (!File.Exists(SMAForm.ServerLists))
                 return;
             ServerList _serverList = new ServerList(); //Creating our server list to save deserialized data
+            try { 
             _serverList =  JsonConvert.DeserializeObject<ServerList>(File.ReadAllText(SMAForm.ServerLists));
+            } catch { return; }
             foreach (ServerList.Server server in _serverList.serverlist)
             {
                 serverlist.TryAdd(new System.Net.IPEndPoint(server.Adress, server.Port));//Adding every serialized server to CMServerList
+                
             }
         }
+        internal Config() { }
+    }
 
-        internal void SetCellId(uint _cellID)
+    internal sealed class BotConfig : Config
+    {
+        [JsonProperty]
+        public string Login { get; set; } = null;
+        [PasswordPropertyText]
+        [JsonProperty]
+        public string Password { get; set; } = null;
+        [JsonProperty]
+        public bool AutoFarm { get; set; } = true;
+        [JsonProperty]
+        internal string loginKey { get; set; } = null;
+        [JsonProperty(Required = Required.DisallowNull)]
+        public bool Enabled { get; set; } = true;
+
+        internal BotConfig(string path) : base(path)
         {
-            cellID = _cellID;
+
+        }
+        internal BotConfig Load()
+        {
+            return (BotConfig)(this as Config).Load();
+        }
+        private BotConfig() { }
+    }
+
+    internal sealed class ProgramConfig : Config
+    {
+        [JsonProperty]
+        internal uint CellID { get; private set; } = 0;
+        [JsonProperty]
+        internal string SomeProperty { get; set; } = "Default";
+
+        private const string ProgramConfigPath = SMAForm.ConfigDirectory+"/Program";
+        internal ProgramConfig() : base(ProgramConfigPath)
+        {
+
+        }
+        internal ProgramConfig Load()
+        {
+            return (ProgramConfig)(this as Config).Load();
+        }
+
+        internal void SetCellID(uint cellID)
+        {
+            CellID = cellID;
             Save();
         }
-        private Config() { }
     }
 }

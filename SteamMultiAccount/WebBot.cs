@@ -58,19 +58,21 @@ namespace SteamMultiAccount
         internal List<ulong> appidToFarmSolo;
         internal List<ulong> appidToFarmMulti;
         internal const string SteamCommunityURL = "https://steamcommunity.com";
+
+        internal string sessionID;
         internal WebBot()
         {
             appidToFarmSolo = new List<ulong>();
             appidToFarmMulti = new List<ulong>();
         }
 
-        internal async void Init(Bot bot, string webAPIUserNonce)
+        internal async Task Init(Bot bot, string webAPIUserNonce)
         {
             _bot = bot;
             steamID = _bot.steamClient.SteamID;
             webClient = new WebClient();
 
-            string sessionID = Convert.ToBase64String(Encoding.UTF8.GetBytes(steamID.ToString()));
+            sessionID = Convert.ToBase64String(Encoding.UTF8.GetBytes(steamID.ToString()));
 
             // Generate an AES session key
             byte[] sessionKey = CryptoHelper.GenerateRandomBlock(32);
@@ -353,6 +355,28 @@ namespace SteamMultiAccount
                 default:
                     return $"Ошибка при выставлении \"{item.name}\" на продажу ({response.StatusCode})";
             }
+        }
+
+        internal async Task<bool> AcceptGift(ulong appID)
+        {
+            if (appID == 0 || !Initialized)
+                return false;
+
+            string request = SteamCommunityURL + "/gifts/" + appID + "/acceptunpack";
+            Dictionary<string, string> data = new Dictionary<string, string>(1) {
+                { "sessionid", sessionID }
+            };
+
+            HttpResponseMessage resp = null;
+            for (byte i = 0; i < WebClient.MaxRetries && resp == null; i++)
+                resp = await webClient.GetContent(new Uri(request), data, HttpMethod.Post).ConfigureAwait(false);
+
+            if (resp == null)
+            {
+                _bot.Log("Cant get response even after " + WebClient.MaxRetries, LogType.Error);
+                return false;
+            }
+            return true;
         }
     }
 }
