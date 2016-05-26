@@ -40,8 +40,9 @@
             this.panel2 = new System.Windows.Forms.Panel();
             this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
             this.StatusLabel = new System.Windows.Forms.Label();
-            this.button1 = new System.Windows.Forms.Button();
-            this.OnOffButton = new System.Windows.Forms.Button();
+            this.labelWallet = new System.Windows.Forms.Label();
+            this.buttonFarm = new System.Windows.Forms.Button();
+            this.buttonConnect = new System.Windows.Forms.Button();
             this.panel3 = new System.Windows.Forms.Panel();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.contextMenuStrip1.SuspendLayout();
@@ -154,8 +155,9 @@
             // flowLayoutPanel1
             // 
             this.flowLayoutPanel1.Controls.Add(this.StatusLabel);
-            this.flowLayoutPanel1.Controls.Add(this.button1);
-            this.flowLayoutPanel1.Controls.Add(this.OnOffButton);
+            this.flowLayoutPanel1.Controls.Add(this.labelWallet);
+            this.flowLayoutPanel1.Controls.Add(this.buttonFarm);
+            this.flowLayoutPanel1.Controls.Add(this.buttonConnect);
             this.flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel1.Location = new System.Drawing.Point(120, 0);
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
@@ -173,25 +175,34 @@
             this.StatusLabel.TabIndex = 2;
             this.StatusLabel.Text = "Farming cards 18 games left";
             // 
-            // button1
+            // labelWallet
             // 
-            this.button1.Location = new System.Drawing.Point(3, 21);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(155, 30);
-            this.button1.TabIndex = 3;
-            this.button1.Text = "Farm";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.labelWallet.AutoSize = true;
+            this.labelWallet.Location = new System.Drawing.Point(3, 18);
+            this.labelWallet.Name = "labelWallet";
+            this.labelWallet.Size = new System.Drawing.Size(49, 19);
+            this.labelWallet.TabIndex = 5;
+            this.labelWallet.Text = "Wallet:\r\n";
             // 
-            // OnOffButton
+            // buttonFarm
             // 
-            this.OnOffButton.Location = new System.Drawing.Point(3, 57);
-            this.OnOffButton.Name = "OnOffButton";
-            this.OnOffButton.Size = new System.Drawing.Size(155, 30);
-            this.OnOffButton.TabIndex = 4;
-            this.OnOffButton.Text = "Connect";
-            this.OnOffButton.UseVisualStyleBackColor = true;
-            this.OnOffButton.Click += new System.EventHandler(this.OnOffButton_Click);
+            this.buttonFarm.Location = new System.Drawing.Point(3, 40);
+            this.buttonFarm.Name = "buttonFarm";
+            this.buttonFarm.Size = new System.Drawing.Size(155, 30);
+            this.buttonFarm.TabIndex = 3;
+            this.buttonFarm.Text = "Farm";
+            this.buttonFarm.UseVisualStyleBackColor = true;
+            this.buttonFarm.Click += new System.EventHandler(this.button1_Click);
+            // 
+            // buttonConnect
+            // 
+            this.buttonConnect.Location = new System.Drawing.Point(3, 76);
+            this.buttonConnect.Name = "buttonConnect";
+            this.buttonConnect.Size = new System.Drawing.Size(155, 30);
+            this.buttonConnect.TabIndex = 4;
+            this.buttonConnect.Text = "Connect";
+            this.buttonConnect.UseVisualStyleBackColor = true;
+            this.buttonConnect.Click += new System.EventHandler(this.OnOffButton_Click);
             // 
             // panel3
             // 
@@ -246,9 +257,10 @@
         private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
         private System.Windows.Forms.Timer timer1;
         private System.Windows.Forms.Label StatusLabel;
-        private System.Windows.Forms.Button button1;
-        private System.Windows.Forms.Button OnOffButton;
+        private System.Windows.Forms.Button buttonFarm;
+        private System.Windows.Forms.Button buttonConnect;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel1;
+        private System.Windows.Forms.Label labelWallet;
     }
 }
 

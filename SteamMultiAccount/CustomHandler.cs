@@ -31,7 +31,6 @@ namespace SteamMultiAccount
                 OnCooldown = 53
             }
 
-            internal readonly EResult Result;
             internal readonly EPurchaseResult PurchaseResult;
             internal readonly KeyValue ReceiptInfo;
             internal readonly Dictionary<uint, string> Items;
@@ -40,14 +39,13 @@ namespace SteamMultiAccount
             {
                 JobID = jobID;
 
-                Result = (EResult) body.eresult;
                 PurchaseResult = (EPurchaseResult) body.purchase_result_details;
 
                 if (body.purchase_receipt_info == null)
                     return;
 
                 ReceiptInfo = new KeyValue();
-                using (var stream = new MemoryStream())
+                using (var stream = new MemoryStream(body.purchase_receipt_info))
                 {
                     if (!ReceiptInfo.TryReadAsBinary(stream))
                         return;
@@ -77,16 +75,18 @@ namespace SteamMultiAccount
             if (string.IsNullOrEmpty(key) || !Client.IsConnected)
                 return null;
 
-            var request = new ClientMsgProtobuf<CMsgClientRegisterKey>(EMsg.ClientRegisterKey) {TargetJobID = Client.GetNextJobID()};
+            var request = new ClientMsgProtobuf<CMsgClientRegisterKey>(EMsg.ClientRegisterKey) {SourceJobID = Client.GetNextJobID()};
             request.Body.key = key;
             Client.Send(request);
             try {
                 return await new AsyncJob<PurchaseResponseCallback>(Client, request.SourceJobID);
-            } catch(Exception e) { Loging.LogToFile("Cant get callback from custom handler: "+e.Message); return null; }
+            } catch(Exception e) { Logging.LogToFile("Cant get callback from custom handler: "+e.Message); return null; }
         }
         public override void HandleMsg(IPacketMsg packetMsg)
         {
             if (packetMsg == null)
+                return;
+            if (packetMsg.MsgType == EMsg.Multi || packetMsg.MsgType == EMsg.ClientClanState)
                 return;
             switch (packetMsg.MsgType)
             {

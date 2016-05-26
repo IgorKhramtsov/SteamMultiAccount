@@ -48,7 +48,7 @@ namespace SteamMultiAccount
                     (config as Config).Path = Path;
                 return config;
             } catch(Exception e) {
-                Loging.LogToFile("Cant deserialize config file ("+e.Message+")");
+                Logging.LogToFile("Cant deserialize config file ("+e.Message+")");
                 return null;
             }
         }
@@ -59,7 +59,7 @@ namespace SteamMultiAccount
                 try {
                     File.WriteAllText(Path, JsonConvert.SerializeObject(this, Formatting.Indented));
                 } catch(Exception e) {
-                    Loging.LogToFile("Cant save config ("+e.Message+")");
+                    Logging.LogToFile("Cant save config ("+e.Message+")");
                 }
             }
         }
@@ -72,7 +72,7 @@ namespace SteamMultiAccount
                 try {
                     File.Delete(Path);
                 } catch(Exception e) {
-                    Loging.LogToFile("Cant delete config ("+e.Message+")");
+                    Logging.LogToFile("Cant delete config ("+e.Message+")");
                 }
             }
         }
@@ -103,7 +103,7 @@ namespace SteamMultiAccount
                         File.WriteAllText(SMAForm.ServerLists, JsonConvert.SerializeObject(_serverList));
                         saved = true;
                     } catch(Exception e) {
-                        Loging.LogToFile("Cant save server list "+e.Message);
+                        Logging.LogToFile("Cant save server list "+e.Message);
                     }
                 }
             }

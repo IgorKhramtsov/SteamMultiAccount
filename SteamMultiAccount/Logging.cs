@@ -18,14 +18,13 @@ namespace SteamMultiAccount
         Debug,
         User
     }
-    internal class Loging
+    internal class Logging
     {
         private string _rtfText;
-        internal Loging(string RtfText)
+        internal Logging(string RtfText)
         {
             _rtfText = RtfText;
         }
-
         internal void Log(string message, LogType type, out string Rtf, [CallerMemberName] string functionName = "")
         {
             string logMess;
@@ -54,7 +53,7 @@ namespace SteamMultiAccount
                     break;
                 case LogType.Warning:
                     logMess = "[WARNING]" + functionName + message;
-                    Log(logMess, Color.Orange);
+                    Log(logMess, Color.OrangeRed);
                     break;
             }
             Rtf = _rtfText;
@@ -76,7 +75,6 @@ namespace SteamMultiAccount
             _rtfText = _rBox.Rtf;
             _rBox.Dispose();
         }
-
         internal static void DebugLogToFile(string message)
         {
             message += Environment.NewLine;
@@ -98,9 +96,9 @@ namespace SteamMultiAccount
             lock (path)
             {
                 try {
-                    File.WriteAllText(path, loggingmessage);
-                } catch {
-
+                    File.AppendAllText(path, loggingmessage);
+                } catch { 
+                    // ignored
                 }
             }
         }

@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Http;
 using HtmlAgilityPack;
 using Newtonsoft.Json.Linq;
+using System.Web;
 
 namespace SteamMultiAccount
 {
@@ -25,7 +26,6 @@ namespace SteamMultiAccount
             ServicePointManager.Expect100Continue = false;
             ServicePointManager.ReusePort = true;
         }
-
         public async Task<HttpResponseMessage> GetContent(Uri url, Dictionary<string, string> data = null, HttpMethod method = null,string refferer = null)
         {
             if (method == null)
@@ -35,11 +35,17 @@ namespace SteamMultiAccount
             using (HttpRequestMessage req = new HttpRequestMessage(method,url))
             {
                 if(data!=null && data.Any())
-                    try { 
-                    req.Content = new FormUrlEncodedContent(data);
-                    } catch(Exception e) {
-                        Loging.LogToFile(e.Message);
-                    }
+                { 
+                    if(method != HttpMethod.Get)
+                        try { 
+                        req.Content = new FormUrlEncodedContent(data);
+                        } catch(Exception e) {
+                            Logging.LogToFile(e.Message);
+                        }
+                    else
+                        foreach (var _data in data)
+                            req.RequestUri = req.RequestUri.AddQueryParameter(_data.Key, _data.Value);
+                }
 
                 if (Cookie.Count>0){
                     StringBuilder sb = new StringBuilder();
@@ -56,7 +62,7 @@ namespace SteamMultiAccount
                 try {
                     resp = await client.SendAsync(req).ConfigureAwait(false);
                 } catch(Exception e) {
-                    Loging.LogToFile("Cant getMessage "+e.Message );
+                    Logging.LogToFile("Cant getMessage "+e.Message );
                 }
             }
             return resp;
@@ -74,13 +80,13 @@ namespace SteamMultiAccount
             ret.LoadHtml(WebUtility.HtmlDecode(response));
             return ret;
         }
-        public async Task<JObject> GetJObject(Uri url, HttpMethod method = null, Dictionary<string, string> data = null)
+        public async Task<JObject> GetJObject(Uri url, Dictionary<string, string> data = null, HttpMethod method = null, string refferer = null)
         {
             if (url == null)
                 return null;
 
             JObject ret = null;
-            HttpResponseMessage resp = await GetContent(url, data, method).ConfigureAwait(false);
+            HttpResponseMessage resp = await GetContent(url, data, method,refferer).ConfigureAwait(false);
             if (!(resp.IsSuccessStatusCode && resp.Content != null))
             {
                 return null;
@@ -88,6 +94,23 @@ namespace SteamMultiAccount
             string response = await resp.Content.ReadAsStringAsync();
             ret = JObject.Parse(response);
             return ret;
+        }
+
+    }
+    public static class UriExtensions
+    {
+        public static Uri AddQueryParameter(this Uri uri, string name, object value)
+        {
+            var builder = new UriBuilder(uri);
+            if (builder.Query != null && builder.Query.Length > 1)
+            {
+                builder.Query = string.Format("{0}&{1}={2}", builder.Query.Substring(1), name, value);
+            }
+            else
+            {
+                builder.Query = string.Format("{0}={1}", name, value);
+            }
+            return builder.Uri;
         }
     }
 }

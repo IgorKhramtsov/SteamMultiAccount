@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using HtmlAgilityPack;
 using SteamKit2;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace SteamMultiAccount
 {
@@ -57,6 +58,8 @@ namespace SteamMultiAccount
         private Bot _bot;
         internal List<ulong> appidToFarmSolo;
         internal List<ulong> appidToFarmMulti;
+        internal List<ulong> alreadyHaveSubID;
+        internal bool bWatchBroadcast;
         internal const string SteamCommunityURL = "https://steamcommunity.com";
 
         internal string sessionID;
@@ -64,6 +67,7 @@ namespace SteamMultiAccount
         {
             appidToFarmSolo = new List<ulong>();
             appidToFarmMulti = new List<ulong>();
+            alreadyHaveSubID = new List<ulong>();
         }
 
         internal async Task Init(Bot bot, string webAPIUserNonce)
@@ -356,7 +360,154 @@ namespace SteamMultiAccount
                     return $"Ошибка при выставлении \"{item.name}\" на продажу ({response.StatusCode})";
             }
         }
+        internal async Task<string> AddToCart(string subID)
+        {
+            ulong uSubID;
+            if (!ulong.TryParse(subID, out uSubID))
+                return "Invalid subID("+subID+")";
 
+            if (!alreadyHaveSubID.Any())
+            {
+                var response = await webClient.GetJObject(new Uri("http://store.steampowered.com/dynamicstore/userdata/"));
+                if (response == null)
+                    return "Cant get user data.";
+                alreadyHaveSubID.AddRange(response["rgOwnedPackages"].Values<ulong>());
+            }
+            if (alreadyHaveSubID.Contains(uSubID))
+                return "already have";
+            string Url = "http://store.steampowered.com/cart/";
+            var Data = new Dictionary<string, string>(3)
+            {
+                {"action","add_to_cart"},
+                {"sessionid",sessionID},
+                {"subid",subID}
+            };
+
+            var resp = await webClient.GetContent(new Uri(Url), Data, HttpMethod.Post).ConfigureAwait(false);
+            if (resp == null)
+                return "Cant add subid(" + subID + ")";
+            var cookies = resp.Headers.GetValues("set-cookie").ToList();
+            foreach (string cookie in cookies)
+            {
+                if (cookie.Contains("shoppingCartGID=")) { 
+                    webClient.Cookie.Add("shoppingCartGID",
+                        cookie.Substring(cookie.IndexOf("shoppingCartGID=") + "shoppingCartGID=".Length,
+                             cookie.IndexOf("; expires") - "shoppingCartGID=".Length));
+                    break;
+                }
+            }
+            return "SubID("+subID+") was added to cart.";
+        }
+        internal async Task<string> BuyCart()
+        {
+            string shopingCart;
+            if (!webClient.Cookie.TryGetValue("shoppingCartGID", out shopingCart))
+                return "Cant get cookie.";
+            string initTransactionURL = "https://store.steampowered.com/checkout/inittransaction/";
+            var Data = new Dictionary<string,string>()
+            {
+                {"gidShoppingCart",shopingCart },
+                {"gidReplayOfTransID","-1" },
+                {"PaymentMethod","steamaccount" },
+                {"Country","RU" },
+                {"ShippingCountry","RU" },
+                {"bUseRemainingSteamAccount","1" }
+            };
+            
+            var resp = await webClient.GetJObject(new Uri(initTransactionURL), Data, HttpMethod.Post).ConfigureAwait(false);
+            if (resp == null)
+                return "Cant init transaction.";
+
+            string finilizeTransURL = "https://store.steampowered.com/checkout/finalizetransaction/";
+            Data = new Dictionary<string, string>()
+            {
+                {"transid", resp["transid"].Value<string>() }
+            };
+
+            var resp2 = await webClient.GetJObject(new Uri(finilizeTransURL), Data, HttpMethod.Post).ConfigureAwait(false);
+            if (resp2 == null)
+                return "Cant finilize transaction.";
+
+            if (resp2["success"].Value<string>() == "22")
+                return "Cart was bought.";
+            if (resp2["success"].Value<string>() == "2")
+                return "Cart wasnt bought!";
+            return "Cart bought status: " + resp2["success"].Value<string>()+".";
+        }
+        internal async Task<bool> WatchBroadcast(string steamID)
+        {
+            string BroadCastURL = "http://steamcommunity.com/broadcast/getbroadcastmpd/" + steamID;
+            string referrer = "http://steamcommunity.com/broadcast/watch/" + steamID;
+            Dictionary<string, string> Data = new Dictionary<string, string>(3)
+            {
+                { "steamid" , steamID},
+                { "broadcastid" , "0" },
+                { "viewertoken" , "0" }
+            };
+            JObject Response = null;
+            Response = await webClient.GetJObject(new Uri(BroadCastURL),Data,null, referrer).ConfigureAwait(false);
+            if (Response == null)
+                return false;
+
+            string BroadcastID = Response["broadcastid"].Value<string>();
+            string ViewerToken = Response["viewertoken"].Value<string>();
+            
+            Data = new Dictionary<string, string>(2)
+            {
+                {"steamid", steamID},
+                {"broadcastid", BroadcastID}
+            };
+            
+            Response = null;
+            Response = await webClient.GetJObject(new Uri("http://steamcommunity.com/broadcast/getchatinfo/"),Data,null, referrer).ConfigureAwait(false);
+            if (Response == null)
+                return false;
+            string url = Response["view_url"].Value<string>().Replace("messages/", "messages/0");
+            bWatchBroadcast = true;
+            Task.Run(() => WatchBroadcastThread(url,steamID,BroadcastID,ViewerToken)).Forget();
+            return true;
+        }
+        private async Task WatchBroadcastThread(string url,string steamid,string broadcastid,string viewertoken)
+        {
+            var Response = await webClient.GetJObject(new Uri(url)).ConfigureAwait(false);
+            if (Response == null)
+                return;
+            string nextRequest = Response["next_request"].Value<string>();
+            int delay = Response["initial_delay"].Value<int>();
+            while (Response != null && bWatchBroadcast)
+            {
+                Thread.Sleep(delay);
+                Response = null;
+                string currNumberReq = url.Substring(url.IndexOf("messages/") + "messages/".Length, url.IndexOf("?viewer=") - (url.IndexOf("messages/") + "messages/".Length)); // current request number
+                url = url.Replace("messages/"+ currNumberReq, "messages/"+nextRequest);
+                for (byte i = 0; i < 3 || Response != null; i++)
+                {
+                    Response = await webClient.GetJObject(new Uri(url)).ConfigureAwait(false);
+                }
+            }
+            string a = url.Substring(url.IndexOf("messages/") + "messages/".Length, url.IndexOf("?viewer=") - (url.IndexOf("messages/") + "messages/".Length)); // current request number
+            url = url.Replace("messages/" + a, "messages/0");
+            if (bWatchBroadcast)
+            {
+                string BroadCastURL = "http://steamcommunity.com/broadcast/getbroadcastmpd/" + steamID;
+                string referrer = "http://steamcommunity.com/broadcast/watch/" + steamID;
+                Dictionary<string, string> Data = new Dictionary<string, string>(3)
+                {
+                    {"steamid", steamid},
+                    {"broadcastid", broadcastid},
+                    {"viewertoken", viewertoken}
+                };
+
+                Response = null;
+                Response = await webClient.GetJObject(new Uri(BroadCastURL), Data, null, referrer).ConfigureAwait(false);
+                if (Response == null)
+                    return;
+                broadcastid = Response["broadcastid"].Value<string>();
+                viewertoken = Response["viewertoken"].Value<string>();
+                Task.Run(() => WatchBroadcastThread(url,steamid,broadcastid,viewertoken)).Forget();
+            }
+
+        }
         internal async Task<bool> AcceptGift(ulong appID)
         {
             if (appID == 0 || !Initialized)
