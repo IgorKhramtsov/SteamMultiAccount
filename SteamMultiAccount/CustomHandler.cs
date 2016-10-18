@@ -33,6 +33,7 @@ namespace SteamMultiAccount
 
             internal readonly EPurchaseResult PurchaseResult;
             internal readonly KeyValue ReceiptInfo;
+            ///<summary>Key - appID. Value - game name.</summary>
             internal readonly Dictionary<uint, string> Items;
 
             internal PurchaseResponseCallback(JobID jobID, CMsgClientPurchaseResponse body)

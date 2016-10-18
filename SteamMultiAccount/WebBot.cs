@@ -10,6 +10,7 @@ using HtmlAgilityPack;
 using SteamKit2;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Net;
 
 namespace SteamMultiAccount
 {
@@ -18,22 +19,22 @@ namespace SteamMultiAccount
         internal sealed class Item_desc
         {
             [JsonProperty(Required = Required.DisallowNull)]
-            internal string classid { get; set; } //Id in class
+            internal string classid { get; set; } // Id in class
             [JsonProperty(Required = Required.DisallowNull)]
-            internal string instanceid { get; set; } //Class
+            internal string instanceid { get; set; } // Class
             [JsonProperty(Required = Required.DisallowNull)]
-            internal string market_hash_name { get; set; } //Name for price sheet
+            internal string market_hash_name { get; set; } // Name for price sheet
             [JsonProperty(Required = Required.DisallowNull)]
-            internal bool marketable { get; set; } //Are markettable?
+            internal bool marketable { get; set; } // Is markettable?
             [JsonProperty(Required = Required.DisallowNull)]
-            internal string Name { get; set; }//Readable name
+            internal string Name { get; set; } // Readable name
         }
         internal sealed class SteamItem
         {
             //https://developer.valvesoftware.com/wiki/Steam_Web_API/IEconService#CEcon_Asset
 
             [JsonProperty(Required = Required.DisallowNull)]
-            internal string assetid { get; set; }//Either assetid or currencyid will be set
+            internal string assetid { get; set; } // Either assetid or currencyid will be set
             [JsonProperty(Required = Required.DisallowNull)]
             internal string id
             {
@@ -41,9 +42,9 @@ namespace SteamMultiAccount
                 set { assetid = value; }
             }
             [JsonProperty(Required = Required.DisallowNull)]
-            internal string classid { get; set; } //Together with instanceid, uniquely identifies the display of the item
+            internal string classid { get; set; } // Together with instanceid, uniquely identifies the display of the item
             [JsonProperty(Required = Required.DisallowNull)]
-            internal string instanceid { get; set; }//Together with classid, uniquely identifies the display of the item
+            internal string instanceid { get; set; }// Together with classid, uniquely identifies the display of the item
         }
         internal struct _Item
         {
@@ -53,28 +54,30 @@ namespace SteamMultiAccount
         }
 
         private SteamID steamID;
-        private WebClient webClient;
-        private bool Initialized = false;
+        internal WebClient webClient;
+        internal GameminerBot gameminerBot;
+        public bool Initialized { get; private set; } = false;
         private Bot _bot;
-        internal List<ulong> appidToFarmSolo;
-        internal List<ulong> appidToFarmMulti;
+        internal List<Game> GamesToFarmSolo;
+        internal List<Game> GamesToFarmMulti;
         internal List<ulong> alreadyHaveSubID;
         internal bool bWatchBroadcast;
         internal const string SteamCommunityURL = "https://steamcommunity.com";
+        internal const string SteamCommunityHOST = "steamcommunity.com";
 
         internal string sessionID;
         internal WebBot()
         {
-            appidToFarmSolo = new List<ulong>();
-            appidToFarmMulti = new List<ulong>();
+            GamesToFarmSolo = new List<Game>();
+            GamesToFarmMulti = new List<Game>();
             alreadyHaveSubID = new List<ulong>();
+            webClient = new WebClient();
         }
 
         internal async Task Init(Bot bot, string webAPIUserNonce)
         {
             _bot = bot;
             steamID = _bot.steamClient.SteamID;
-            webClient = new WebClient();
 
             sessionID = Convert.ToBase64String(Encoding.UTF8.GetBytes(steamID.ToString()));
 
@@ -106,12 +109,12 @@ namespace SteamMultiAccount
                     autResult = iSteamUserAuth.AuthenticateUser(
                         steamid: steamID.ConvertToUInt64(),
                         sessionkey:
-                            Encoding.ASCII.GetString(System.Net.WebUtility.UrlEncodeToBytes(cryptedSessionKey, 0,
+                            Encoding.ASCII.GetString(WebUtility.UrlEncodeToBytes(cryptedSessionKey, 0,
                                 cryptedSessionKey.Length)),
                         encrypted_loginkey:
-                            Encoding.ASCII.GetString(System.Net.WebUtility.UrlEncodeToBytes(cryptedLoginKey, 0,
+                            Encoding.ASCII.GetString(WebUtility.UrlEncodeToBytes(cryptedLoginKey, 0,
                                 cryptedLoginKey.Length)),
-                        method: System.Net.WebRequestMethods.Http.Post,
+                        method: WebRequestMethods.Http.Post,
                         secure: true);
                 }
                 catch (Exception e)
@@ -124,95 +127,101 @@ namespace SteamMultiAccount
                 return;
             _bot.Log("Success", LogType.Info);
 
-            string steamLogin = autResult["token"].AsString();
-            string steamLoginSecure = autResult["tokensecure"].AsString();
+            string steamLogin = autResult["token"].Value;
+            string steamLoginSecure = autResult["tokensecure"].Value;
 
-            webClient.Cookie["sessionid"] = sessionID;
-            webClient.Cookie["steamLogin"] = steamLogin;
-            webClient.Cookie["steamLoginSecure"] = steamLoginSecure;
-
-            webClient.Cookie["webTradeEligibility"] = "{\"allowed\":0,\"reason\":0,\"allowed_at_time\":0,\"steamguard_required_days\":0,\"sales_this_year\":0,\"max_sales_per_year\":0,\"forms_requested\":0}";
+            webClient.cookieContainer.Add(new Cookie("sessionid", sessionID, "/", "." + SteamCommunityHOST));
+            webClient.cookieContainer.Add(new Cookie("steamLogin", steamLogin, "/", "." + SteamCommunityHOST));
+            webClient.cookieContainer.Add(new Cookie("steamLoginSecure", steamLoginSecure, "/", "." + SteamCommunityHOST));
 
             Initialized = true;
+            GiveawayBotInit().Forget();
         }
-        internal bool isInitialized()
+        internal async Task<bool> RefreshGamesToFarm()
         {
-            return Initialized;
-        }
-        internal async Task RefreshGamesToFarm()
-        {
-            byte Pagecount = 1;//Count of badges page by default
+            if (!Initialized) // Is webBot initialize?
+                return false;
 
-            if (!isInitialized())//Is webBot initialize?
-                return;
+            byte Pagecount = 1; // Count of badges page by default
+            await _bot.RefreshSessionIfNeeded().ConfigureAwait(false);
 
-            Uri url = new Uri(SteamCommunityURL + "/profiles/" + steamID.ConvertToUInt64() + "/badges");//Uri to page with badges
+            Uri url = new Uri(SteamCommunityURL + "/profiles/" + steamID.ConvertToUInt64() + "/badges"); // Uri to page with badges
+
             HtmlDocument doc = null;
-
             for (int i = 0; doc == null && i < WebClient.MaxRetries; i++)
-                doc = await webClient.GetDocument(url).ConfigureAwait(false);//Get first page with badges
+                doc = await webClient.GetDocument(url).ConfigureAwait(false); // Get first page with badges
             if (doc == null)
             {
                 _bot.Log("Cant get badge page", LogType.Error);
-                return;
+                return false;
             }
 
-            HtmlNodeCollection collection = doc.DocumentNode.SelectNodes("//a[@class='pagelink']");//Are we have page navigation?
+            HtmlNodeCollection collection = doc.DocumentNode.SelectNodes("//a[@class='pagelink']"); // Are we have page navigation?
             if (collection != null)
-                if (!Byte.TryParse(collection.Last().InnerText, out Pagecount))//If yes, change ours count of page
+                if (!byte.TryParse(collection.Last().InnerText, out Pagecount)) // If yes, change ours count of page
                     Pagecount = 1;
 
-            appidToFarmMulti.Clear();//Clear up our list, because we will check badges level every N time
-            appidToFarmSolo.Clear();
-            List<Task> tasks = new List<Task>(Pagecount);//Make list of task to check page for game to idle
+            GamesToFarmMulti.Clear(); // Clear up our list, because we will check badges level every N time
+            GamesToFarmSolo.Clear();
+            List<Task> tasks = new List<Task>(Pagecount); // Make list of task to check page for game to idle
             for (byte i = 1; i <= Pagecount; i++)
             {
-                byte currentPage = i;//Need save our page for use async
+                byte currentPage = i; // Need save our page for use async
                 HtmlDocument page = await webClient.GetDocument(new Uri(url, "?p=" + currentPage)).ConfigureAwait(false);
                 tasks.Add(CheckPage(page));
             }
-            await Task.WhenAll(tasks).ConfigureAwait(false);//Wait for all page checked
+            await Task.WhenAll(tasks).ConfigureAwait(false); // Wait for all page checked
 
-            if (!appidToFarmSolo.Any() && !appidToFarmMulti.Any())
+            if (!GamesToFarmSolo.Any() && !GamesToFarmMulti.Any())
                 _bot.Log("Have nothing to farm", LogType.Info);
             else
-                _bot.Log($"We have {appidToFarmSolo.Count} to farm solo and {appidToFarmMulti.Count} to farm multi", LogType.Info);//Log count of game to idle
+                _bot.Log($"We have {GamesToFarmSolo.Count} to farm solo and {GamesToFarmMulti.Count} to farm multi", LogType.Info); // Log count of game to idle
+
+            return true;
         }
-        internal async Task CheckPage(HtmlDocument page)
+        internal async Task<bool> CheckPage(HtmlDocument page)
         {
             if (page == null)
-                return;
+                return false;
 
-            HtmlNodeCollection BadgeStats = page.DocumentNode.SelectNodes("//div[@class='badge_title_stats']");//Get badge block
+            HtmlNodeCollection BadgeStats = page.DocumentNode.SelectNodes("//div[@class='badge_title_row']"); // Get badge block
             foreach (HtmlNode node in BadgeStats)
             {
-                HtmlNode PlayButton = node.SelectSingleNode(".//a[@class='btn_green_white_innerfade btn_small_thin']");//Get play button with appid for game needed idling
-                HtmlNode PlayHours = node.SelectSingleNode(".//div[@class='badge_title_stats_playtime']");//Get stats of playing hours to select how we will farm multi or single
+                HtmlNode PlayButton = node.SelectSingleNode(".//div[@class='badge_title_stats']//a[@class='btn_green_white_innerfade btn_small_thin']"); // Get play button with appid for game needed idling
+                HtmlNode PlayHours = node.SelectSingleNode(".//div[@class='badge_title_stats']//div[@class='badge_title_stats_playtime']"); // Get stats of playing hours to select how we will farm multi or single
+                HtmlNode PlayName = node.SelectSingleNode(".//div[@class='badge_title']"); // Get name
                 if (PlayButton == null)
-                    continue;//Doesnt need to farm, no cards remaining
+                    continue; // Doesnt need to farm, no cards remaining
                 string appid_row = PlayButton.GetAttributeValue("href", "");
                 if (appid_row == "")
                     continue;
-                appid_row = appid_row.Substring("steam://run/".Length);//Get appid
+                appid_row = appid_row.Substring("steam://run/".Length); // Get appid
                 ulong appid;
-                if (!ulong.TryParse(appid_row, out appid))//Parse appid
+                if (!ulong.TryParse(appid_row, out appid)) // Parse appid
                     _bot.Log("Cant parse appid from - " + appid_row, LogType.Error);
 
                 float hours;
+                string name = "";
+                if (PlayName != null && PlayName.FirstChild != null && !string.IsNullOrWhiteSpace(PlayName.FirstChild.InnerText))
+                    name = PlayName.FirstChild.InnerText;
+                Game game = new Game(appid, name.Replace("\t", "").Replace("\r", "").Replace("\n", ""));
 
-                Match match = Regex.Match(PlayHours.InnerText, @"[0-9\.,]+");//Parse time in game
+
+                Match match = Regex.Match(PlayHours.InnerText, @"[0-9\.,]+"); // Parse time in game
                 if (match.Success)
+                {
                     if (float.TryParse(match.Value, System.Globalization.NumberStyles.Number,
                         System.Globalization.CultureInfo.InvariantCulture, out hours))
-                        if (hours > 3) //if more than 3 hours then we add it to solo farming list
-                            if (!appidToFarmSolo.Contains(appid))
-                            {
-                                appidToFarmSolo.Add(appid);
-                                continue;
-                            }
-                if (!appidToFarmMulti.Contains(appid))//Check if we already have this game in list
-                    appidToFarmMulti.Add(appid);
+                        if (hours > 3) // If more than 3 hours then we add it to solo farming list
+                        {
+                            if (!GamesToFarmSolo.Contains(game))
+                                GamesToFarmSolo.Add(game);
+                        }
+                        else if (!GamesToFarmMulti.Contains(game))
+                            GamesToFarmMulti.Add(game);
+                }
             }
+            return true;
         }
         internal async Task<int> getPrice(_Item item)
         {
@@ -319,12 +328,17 @@ namespace SteamMultiAccount
         }
         internal async Task<string> SellItem(_Item item,int price = 0)
         {
-            string sessionID;
-            if (!webClient.Cookie.TryGetValue("sessionid", out sessionID))
-                return null;
+            string sessionID = "";
+            var cookies = webClient.cookieContainer.GetCookies(new Uri(SteamCommunityURL));
+            try
+            {
+                sessionID = cookies["sessionid"].Value;
+            }
+            catch (Exception e) { Logging.LogToFile("Cookie doesnt exist: " + e.Message); return ""; }
+            if (string.IsNullOrEmpty(sessionID))
+                return "";
 
-            string referrer = SteamCommunityURL + "/market";
-            string request = referrer + "/sellitem";
+            string request = SteamCommunityURL + "/market/sellitem";
 
             if (price == 0)//If price not set
             {
@@ -344,7 +358,7 @@ namespace SteamMultiAccount
 
             HttpResponseMessage response = null;
             for (byte i = 0; i < WebClient.MaxRetries && response == null; i++)
-                response = await webClient.GetContent(new Uri(request), data, HttpMethod.Post,referrer).ConfigureAwait(false);
+                response = await webClient.GetContent(new Uri(request), data, HttpMethod.Post).ConfigureAwait(false);
             if (response == null)
             {
                 _bot.Log($"Request failed even after {WebClient.MaxRetries} tries", LogType.Error);
@@ -389,20 +403,30 @@ namespace SteamMultiAccount
             var cookies = resp.Headers.GetValues("set-cookie").ToList();
             foreach (string cookie in cookies)
             {
-                if (cookie.Contains("shoppingCartGID=")) { 
-                    webClient.Cookie.Add("shoppingCartGID",
-                        cookie.Substring(cookie.IndexOf("shoppingCartGID=") + "shoppingCartGID=".Length,
-                             cookie.IndexOf("; expires") - "shoppingCartGID=".Length));
+                
+                if (cookie.Contains("shoppingCartGID="))
+                {
+                    // TODO: Check if cookie container auto apply cookies
+                    // so we dont need this shit if yes
+                    var cookieValue = cookie.Substring(cookie.IndexOf("shoppingCartGID=") + "shoppingCartGID=".Length,
+                             cookie.IndexOf("; expires") - "shoppingCartGID=".Length);
+                    webClient.cookieContainer.Add(new Cookie("shoppingCartGID", cookieValue, "/", "." + SteamCommunityHOST));
                     break;
                 }
+                
             }
             return "SubID("+subID+") was added to cart.";
         }
         internal async Task<string> BuyCart()
         {
-            string shopingCart;
-            if (!webClient.Cookie.TryGetValue("shoppingCartGID", out shopingCart))
-                return "Cant get cookie.";
+            var cookies = webClient.cookieContainer.GetCookies(new Uri(SteamCommunityURL));
+            string shopingCart = "";
+            try
+            {
+                shopingCart = cookies["shoppingCartGID"].Value;
+            } catch (Exception e) { Logging.LogToFile("Cookie doesnt exist: " + e.Message);return ""; }
+            if (string.IsNullOrEmpty(shopingCart))
+                return "";
             string initTransactionURL = "https://store.steampowered.com/checkout/inittransaction/";
             var Data = new Dictionary<string,string>()
             {
@@ -436,8 +460,8 @@ namespace SteamMultiAccount
         }
         internal async Task<bool> WatchBroadcast(string steamID)
         {
+            // TODO: fix - Bot listed in chat but not in broadcast
             string BroadCastURL = "http://steamcommunity.com/broadcast/getbroadcastmpd/" + steamID;
-            string referrer = "http://steamcommunity.com/broadcast/watch/" + steamID;
             Dictionary<string, string> Data = new Dictionary<string, string>(3)
             {
                 { "steamid" , steamID},
@@ -445,7 +469,7 @@ namespace SteamMultiAccount
                 { "viewertoken" , "0" }
             };
             JObject Response = null;
-            Response = await webClient.GetJObject(new Uri(BroadCastURL),Data,null, referrer).ConfigureAwait(false);
+            Response = await webClient.GetJObject(new Uri(BroadCastURL),Data).ConfigureAwait(false);
             if (Response == null)
                 return false;
 
@@ -459,7 +483,7 @@ namespace SteamMultiAccount
             };
             
             Response = null;
-            Response = await webClient.GetJObject(new Uri("http://steamcommunity.com/broadcast/getchatinfo/"),Data,null, referrer).ConfigureAwait(false);
+            Response = await webClient.GetJObject(new Uri("http://steamcommunity.com/broadcast/getchatinfo/"),Data).ConfigureAwait(false);
             if (Response == null)
                 return false;
             string url = Response["view_url"].Value<string>().Replace("messages/", "messages/0");
@@ -490,7 +514,6 @@ namespace SteamMultiAccount
             if (bWatchBroadcast)
             {
                 string BroadCastURL = "http://steamcommunity.com/broadcast/getbroadcastmpd/" + steamID;
-                string referrer = "http://steamcommunity.com/broadcast/watch/" + steamID;
                 Dictionary<string, string> Data = new Dictionary<string, string>(3)
                 {
                     {"steamid", steamid},
@@ -499,7 +522,7 @@ namespace SteamMultiAccount
                 };
 
                 Response = null;
-                Response = await webClient.GetJObject(new Uri(BroadCastURL), Data, null, referrer).ConfigureAwait(false);
+                Response = await webClient.GetJObject(new Uri(BroadCastURL), Data).ConfigureAwait(false);
                 if (Response == null)
                     return;
                 broadcastid = Response["broadcastid"].Value<string>();
@@ -528,6 +551,29 @@ namespace SteamMultiAccount
                 return false;
             }
             return true;
+        }
+        internal async Task<bool> IsLoggedIn()
+        {
+            if (!Initialized)
+                return false;
+            var redirectedURI = await webClient.GetRedirectedUri(new Uri(SteamCommunityURL + "/my/videos")).ConfigureAwait(false);
+            if (redirectedURI.ToString().Contains("/login"))
+                return false;
+
+            return true;
+        }
+        internal async Task GiveawayBotInit()
+        {
+            _bot.Log("Gameminer bot starting...",LogType.Info);
+            gameminerBot = new GameminerBot(webClient, _bot.BotConfig);
+            if (!await gameminerBot.Init().ConfigureAwait(false))
+            {
+                _bot.Log("Fail", LogType.Info);
+                return;
+            }
+            _bot.Log("Success", LogType.Info);
+            _bot.Log("Checking giveaways...", LogType.Info);
+            gameminerBot.CheckGiveaways().Forget();
         }
     }
 }

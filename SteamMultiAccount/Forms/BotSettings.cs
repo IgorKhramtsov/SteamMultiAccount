@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json;
+using System.IO;
 
 namespace SteamMultiAccount
 {
@@ -23,42 +24,50 @@ namespace SteamMultiAccount
             _mainForm = mainForm;
             _botName = BotName;
             if (string.IsNullOrEmpty(_botName))
-                if (!UserInput.input(out _botName, Program.InputType.BotName))
-                {
-                    wantclose = true;
-                    Close();
-                    Dispose();
-                    return;
-                }
-                else
-                    botCreated = true;
-            
+                GetBotname();
+
             InitializeComponent();
             Init();
         }
+        private void GetBotname()
+        {
+            if (!UserInput.input(out _botName, Program.InputType.BotName))
+            {
+                wantclose = true;
+                Close();
+                return;
+            }
+            else
+            {
+                if (!File.Exists(Path.Combine(SMAForm.ConfigDirectory, _botName)))
+                    botCreated = true;
+                else if (MessageBox.Show("Bot with this name already exist, do u wanna edit this bot?", "Bot already exist", MessageBoxButtons.YesNo) == DialogResult.No)
+                    GetBotname();
+            }
+        }
         internal void Init()
         {
-            string path = System.IO.Path.Combine(SMAForm.ConfigDirectory, _botName);
+            string path = Path.Combine(SMAForm.ConfigDirectory, _botName);
             var botConfig = new BotConfig(path);
             botConfig = botConfig.Load();
             propertyGrid = new ConfigPropertyGrid(botConfig);
             Controls.Add(propertyGrid);
-            if(botCreated)
-            _mainForm.BotListAdd(_botName);
+            if (botCreated)
+                _mainForm.BotListAdd(_botName);
         }
 
         private void BotSettings_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (string.IsNullOrEmpty(_botName))
                 return;
-            if(botCreated)
-                new Bot(_botName);
-            else if(propertyGrid.somethingChange)
-            { 
-            Bot bot;
-            if (!Bot.Bots.TryGetValue(_botName, out bot))
-                return;
-            bot.Restart();
+
+            if (botCreated)
+                new Bot(_botName, _mainForm);
+            else if (propertyGrid.somethingChange)
+            {
+                Bot bot;
+                if (Bot.Bots.TryGetValue(_botName, out bot))
+                    bot.Restart();
             }
         }
     }

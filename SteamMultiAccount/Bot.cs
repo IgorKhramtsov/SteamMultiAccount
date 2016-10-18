@@ -10,6 +10,9 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Text.RegularExpressions;
+using System.Windows.Forms;
+using System.Diagnostics;
+using HSteamUser = Steamworks.HSteamUser;
 
 namespace SteamMultiAccount
 {
@@ -21,7 +24,6 @@ namespace SteamMultiAccount
         Farming,
         RefreshGamesToFarm
     }
-
     struct sWallet
     {
         internal ECurrencyCode Curency;
@@ -40,27 +42,31 @@ namespace SteamMultiAccount
         };
         
         private const ushort CallbackSleep = 1000;
-
-        internal bool isRunning, initialized, needAuthCode, needTwoFactorAuthCode,Restarting; // Bot flag
-        private bool isManualDisconnect; // Private bot flag
-        private string authCode, twoFactorAuthCode; //Temp strings
-        private readonly string sentryPath;
-        private string _logboxText;
-        internal List<uint> AlreadyOwnedGames;
-        internal delegate Task<string> MyDelegate(string[] args);
-        internal static readonly string[] CommandsKeys = {"Nickname", "Sellcards","RefreshCMs","Watch","UnWatch","Buy"};
-        internal        readonly Dictionary<string, MyDelegate> Commands;
-        internal StatusEnum Status;
-        internal sWallet Wallet;
-
-        internal                 ulong[] CurrentFarming;
-        internal                 Timer timer;
         internal static readonly uint loginID = MsgClientLogon.ObfuscationMask;
         internal static readonly Dictionary<string, Bot> Bots = new Dictionary<string, Bot>();
-        internal static          ProgramConfig ProgramConfig;
+        internal static readonly string[] CommandsKeys = { "Nickname", "Sellcards", "Watch", "Unwatch", "Buy" , "PlayDota"};
+
+        /* Bot flags */
+        internal                 bool isRunning, initialized, needAuthCode, needTwoFactorAuthCode, Restarting;
+        private                  bool isManualDisconnect;
+        /* Temp strings */
+        private                  string authCode, twoFactorAuthCode;
+        /* Service stuff */
+        private         readonly SMAForm InitializerForm;
+        internal                 System.Threading.Timer timer;
+        internal                 delegate Task<string> MyDelegate(string[] args);
+        /* Lists */
+        internal                 List<uint> AlreadyOwnedGames;
+        internal                 List<Game> CurrentFarming;
+        internal        readonly Dictionary<string, MyDelegate> Commands;
         internal        readonly List<SteamID> FriendList = new List<SteamID>();
+        internal                 StatusEnum Status;
+        internal                 sWallet Wallet;
+        /* Environment variables*/
         internal        readonly string BotName;
         internal        readonly string BotPath;
+        /* Classes */
+        internal static          ProgramConfig ProgramConfig;
         internal                 BotConfig BotConfig;
         internal        readonly Logging logging;
         internal        readonly SteamClient steamClient;
@@ -68,28 +74,35 @@ namespace SteamMultiAccount
         internal        readonly SteamFriends steamFriends;
         internal        readonly SteamApps steamApps;
         internal        readonly CallbackManager callbackManager;
-        internal                 WebBot webBot;
-        internal        readonly CustomHandler customHandler;
+        internal        readonly WebBot webBot;
+        internal        readonly DotaBot dotaBot;
 
-        internal Bot(string botName)
+        internal        readonly CustomHandler customHandler;
+        
+
+        internal Bot(string botName,SMAForm initializer)
         {
             if (string.IsNullOrEmpty(botName))
                 return;
+            if (initializer == null)
+                return;
+            InitializerForm = initializer;
             BotName = botName;
             BotPath = Path.Combine(SMAForm.ConfigDirectory, BotName);
-            sentryPath = Path.Combine(SMAForm.BotsData, BotName + ".bin");
+            
             AlreadyOwnedGames = new List<uint>();
+            CurrentFarming = new List<Game>();
             Commands = new Dictionary<string, MyDelegate>()
             {
                 {CommandsKeys[0], ChangeNickname},
                 {CommandsKeys[1], Sellcards},
-                {CommandsKeys[2], RefreshCMs },
-                {CommandsKeys[3], WatchBroadcastCommand},
-                {CommandsKeys[4], UnWatchBroadcastCommand},
-                {CommandsKeys[5], BuyApps}
+                {CommandsKeys[2], WatchBroadcastCommand},
+                {CommandsKeys[3], UnWatchBroadcastCommand},
+                {CommandsKeys[4], BuyApps},
+                {CommandsKeys[5], PlayDota},
             };
 
-            logging = new Logging(_logboxText);
+            logging = new Logging();
             BotConfig = new BotConfig(BotPath);
             steamClient = new SteamClient();
             steamUser = steamClient.GetHandler<SteamUser>();
@@ -97,12 +110,13 @@ namespace SteamMultiAccount
             steamApps = steamClient.GetHandler<SteamApps>();
             callbackManager = new CallbackManager(steamClient);
             webBot = new WebBot();
+            dotaBot = new DotaBot(logging,steamClient,callbackManager);
             customHandler = new CustomHandler();
 
             BotConfig = BotConfig.Load();
+            timer = new System.Threading.Timer(e => Farm());
 
             steamClient.AddHandler(customHandler);
-
             callbackManager.Subscribe<SteamClient.ConnectedCallback>(OnConnected);
             callbackManager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnected);
 
@@ -113,14 +127,13 @@ namespace SteamMultiAccount
             callbackManager.Subscribe<SteamUser.AccountInfoCallback>(OnAccountInfo);
             callbackManager.Subscribe<SteamUser.WalletInfoCallback>(OnWalletInfo);
 
-            callbackManager.Subscribe<SteamFriends.FriendMsgCallback>(OnFriendMessage);
+            //callbackManager.Subscribe<SteamFriends.FriendMsgCallback>(OnFriendMessage); Dont handle messages
             callbackManager.Subscribe<SteamFriends.FriendsListCallback>(OnFriendList);
 
             callbackManager.Subscribe<SteamApps.GuestPassListCallback>(OnGuestPass);
             callbackManager.Subscribe<SteamApps.FreeLicenseCallback>(OnFreeLicense);
 
             // TODO: Join to game aways on sites
-            // TODO: Smart command acception, like cortana
 
             if (Bots.ContainsKey(BotName))
                 return;
@@ -130,43 +143,62 @@ namespace SteamMultiAccount
                 ProgramConfig = new ProgramConfig();
                 ProgramConfig = ProgramConfig.Load();
             }
-
-            Restart();
-        }
-        internal void Restart(bool Force = false)
-        {
-            BotConfig conf = BotConfig.Load();
-            if (conf == BotConfig)
-                return;
-
-            if (steamClient.IsConnected)
-            {
-                isManualDisconnect = true;
-                steamClient.Disconnect();
-                Restarting = true;
-                return;
-            }
-
-            initialized = false;
-            if (!Force)
-            {
-                BotConfig = conf;
-                if (!BotConfig.Enabled)
-                {
-                    Log("Bot disabled", LogType.Info);
-                    Status = StatusEnum.Disabled;
-                    initialized = true;
-                    return;
-                }
-                Log("Bot enabled", LogType.Info);
-            }
-
+            SteamClient.Servers.CellID = BotConfig.CellID;
+            SteamClient.Servers.ServerListProvider = new SteamKit2.Discovery.FileStorageServerListProvider(SMAForm.ServerList);
             NetDebug();
 
-            Status = StatusEnum.Connecting;
-            RefreshCMs(ProgramConfig.CellID).Wait();
+            if (BotConfig.Enabled)
+                Start().Forget();
+            else
+            {
+                Status = StatusEnum.Disabled;
+                initialized = true;
+            }
+            
+        }
 
-            Start().Forget();
+        internal async Task Start()
+        {
+            if (isRunning && steamClient.IsConnected)
+            {
+                Status = StatusEnum.Connected;
+                return;
+            }
+            initialized = false;
+
+            var config = BotConfig.Load();
+            if (config != BotConfig)
+                BotConfig = config;
+
+            isRunning = true;
+            Task.Run(() => CallbacksHandler()).Forget();
+            Log("Connecting to steam...", LogType.Info);
+            Status = StatusEnum.Connecting;
+            steamClient.Connect();
+        }
+        internal async Task Stop()
+        {
+            isManualDisconnect = true;
+            initialized = false;
+            Log("Disconnecting from steam...", LogType.Info);
+            if (steamUser.SteamID != null)
+                steamUser.LogOff();
+            steamClient.Disconnect();
+            /* Farming cleaning */
+            foreach (var game in CurrentFarming)
+                game.StopIdle();
+            CurrentFarming.Clear();
+            FarmTimerStop();
+        }
+        internal void Restart()
+        {
+            if (steamClient.IsConnected)
+            {
+                Restarting = true;
+                Stop().Forget();
+            }
+            else
+                Start().Forget();
         }
         internal async Task<string> Response(string message)
         {
@@ -189,8 +221,12 @@ namespace SteamMultiAccount
             if (message.Contains('-')) // Check if request can be key
             {
                 string[] keys = message.Split((char[]) null,StringSplitOptions.RemoveEmptyEntries); // Split keys
-                if(isKey(keys.First()))//if first element is key, then lets think all elements are keys
-                Ret =  await KeyActivate(keys).ConfigureAwait(false);
+                if (isKey(keys.First()))//if first element is key, then lets think all elements are keys
+                {
+                    var res = await KeyActivate(keys).ConfigureAwait(false);
+                    InitializerForm.Invoke(new MethodInvoker(delegate { KeyManager keyManager = new KeyManager(res); keyManager.Show(); }));
+                    Ret = "Keys accepted";
+                }
             }
 
             // TODO: Ingame idling function
@@ -233,25 +269,49 @@ namespace SteamMultiAccount
                 return;
             steamFriends.SendChatMessage(Sender, EChatEntryType.ChatMsg, ret);
         } // Handle steam chat message
-        internal void FarmGame(ulong[] appIDs)
+        internal void FarmGame(List<Game> Games)
         {
-            if (appIDs.Length > 1 && appIDs[0] != 0)
-                CurrentFarming = appIDs;
-            else
-                CurrentFarming = new ulong[1];
-
-            var req = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayed);
-            foreach (ulong appid in appIDs)
+            /* Prepeare CurrentFarming list */
+            foreach (var game in Games)
+                if (!CurrentFarming.Contains(game))
+                    CurrentFarming.Add(game);
+            var listGames = new List<Game>(CurrentFarming);
+            foreach (var game in listGames)
+                if (!Games.Contains(game))
+                {
+                    game.StopIdle();
+                    CurrentFarming.Remove(game);
+                }
+            /*If user authorized in steam client*/
+            if (Steamworks.SteamAPI.IsSteamRunning() && BotConfig.IsAuthorizedInSteamClient)
             {
-                if (appid == 0)
-                    continue;
-                req.Body.games_played.Add(new CMsgClientGamesPlayed.GamePlayed() { game_id = new GameID(appid) });
+                int i = 0;
+                listGames = new List<Game>(CurrentFarming);
+                foreach (var game in listGames)
+                {
+                    if (ProgramConfig.SimultaneousGamesFarming > 0 && i >= ProgramConfig.SimultaneousGamesFarming) // Delete remaining 
+                    {
+                        game.StopIdle();
+                        CurrentFarming.Remove(game);
+                        continue;
+                    }
+                    game.StartIdle();
+                    i++;
+                }
+                return;
+            }
+            /* If user not authorized in steam client */
+            /* To stop farming we must send request without games */
+            var req = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayed);
+            foreach (var game in CurrentFarming)
+            {
+                req.Body.games_played.Add(new CMsgClientGamesPlayed.GamePlayed() { game_id = new GameID(game.appID) });
             }
             steamClient.Send(req);
         }
-        internal void FarmGame(ulong appID)
+        internal void FarmGame(Game game)
         {
-            FarmGame(new [] { appID });
+            FarmGame(new List<Game>() { game });
         }
         internal void SendMessage(SteamID steamID, string message)
         {
@@ -291,43 +351,126 @@ namespace SteamMultiAccount
             await steamFriends.SetPersonaName(nickname);
             return "Nickname changed to " + nickname;
         }
-        internal async Task<string> KeyActivate(string[] args)
+        internal async Task<List<Key>> KeyActivate(string[] args)
         {
+            /*
+             * 1)   Check if key is valid
+             * 2)   Create list of keys
+             * 3)   Try activate key on current bot
+             * 4.a) If cooldown -> return error
+             * 4.b) If key activated -> add it to list, next key
+             * 4.c) If key is invalid -> next key
+             * 4.d) If game already owned -> add it to list, go to 5)
+             * 5)   Get all bots and try to activate on them
+             * 6)   If this bot already have this game -> next bot
+             * 7.a) If cooldown -> next bot
+             * 7.b) If key activated -> add it to list, next key
+             * 7.c) If key is invalid -> next key
+             * 7.d) If game already owned -> add it to list, go to next bot
+             */
             if (args == null || !args.Any())
-                return "Empty key";
-            foreach (string sKey in args) // Check all keys
-            {
-                if (!isKey(sKey)) { 
-                    Log("Invalid key(" + sKey + ").", LogType.Info); // if key is invalid
-                    continue;                                        // then skip
-                }
+                return new List<Key>();
 
-                var callback = await KeyActivate(sKey).ConfigureAwait(true);
-                if (callback == null)                                   // if can`t hadle callback
-                    continue;                                           // then skip this key
-                
-                if (KeyResponseNeedContinue(callback,sKey))
-                { 
-                    uint appID = callback.Items.Any() ? callback.Items.First().Key : 0;
-                    foreach (Bot bot in Bots.Values)
+            var Keys = new List<Key>();
+            foreach(var _key in args)
+            {
+                if (!isKey(_key))
+                    continue;
+                var key = new Key(_key);
+                if (!Keys.Contains(key))
+                    Keys.Add(key);
+            }
+            if (!Keys.Any())
+                return Keys;
+
+            foreach(var Key in Keys)
+            {
+                CustomHandler.PurchaseResponseCallback res = null;
+                for (byte i = 0; i < 3 && res == null ; i++)
+                {
+                    res = await this.KeyActivate(Key.key);
+                    if (res.PurchaseResult == CustomHandler.PurchaseResponseCallback.EPurchaseResult.Unknown)
+                        res = null;
+                }
+                if (res == null)
+                    continue;
+
+                Key.ActivatingResult = res.PurchaseResult;
+                switch(res.PurchaseResult)
+                {
+                    case CustomHandler.PurchaseResponseCallback.EPurchaseResult.OnCooldown:
+                        Key.botName = BotName;
+                        return Keys;
+                    case CustomHandler.PurchaseResponseCallback.EPurchaseResult.OK:
+                        Key.appID = res.Items.First().Key;
+                        Key.gameName = res.Items.First().Value;
+                        this.AlreadyOwnedGames.Add(Key.appID);
+                        Key.botName = this.BotName;
+                        continue;
+                    case CustomHandler.PurchaseResponseCallback.EPurchaseResult.AlreadyOwned:
+                        Key.appID = res.Items.First().Key;
+                        Key.gameName = res.Items.First().Value;
+                        this.AlreadyOwnedGames.Add(Key.appID);
+                        break;
+                    case CustomHandler.PurchaseResponseCallback.EPurchaseResult.BaseGameRequired:
+                    case CustomHandler.PurchaseResponseCallback.EPurchaseResult.RegionLocked:
+                        break;
+                    case CustomHandler.PurchaseResponseCallback.EPurchaseResult.InvalidKey:
+                    case CustomHandler.PurchaseResponseCallback.EPurchaseResult.DuplicatedKey:
+                    case CustomHandler.PurchaseResponseCallback.EPurchaseResult.Unknown:
+                        continue;
+                }
+                foreach(var bot in Bots.Values)
+                {
+                    bool stop = false;
+                    if (bot.AlreadyOwnedGames.Contains(Key.appID))
+                        continue;
+
+                    res = null;
+                    for (byte i = 0; i < 3 && res == null; i++)
                     {
-                        if (!(bot.isRunning && bot.steamClient.IsConnected) || bot == this) // if bot not connected or bot = this instance
-                            continue;                                                       // then skip
-                        if (appID != 0 && bot.AlreadyOwnedGames.Contains(appID))            // if bot already have this game
-                            continue;                                                       // then skip
-                        callback = await bot.KeyActivate(sKey).ConfigureAwait(false);
-                        if (callback == null)                                               // if can`t hadle callback
-                            continue;                                                       // then skip
-                        if (!KeyResponseNeedContinue(callback,sKey))                        // if doesn`t need to continue
-                            break;                                                          // then break
+                        res = await this.KeyActivate(Key.key);
+                        if (res.PurchaseResult == CustomHandler.PurchaseResponseCallback.EPurchaseResult.Unknown)
+                            res = null;
                     }
+                    if (res == null)
+                        continue;
+
+                    Key.ActivatingResult = res.PurchaseResult;
+                    switch (res.PurchaseResult)
+                    {
+                        case CustomHandler.PurchaseResponseCallback.EPurchaseResult.OnCooldown:
+                            continue;
+                        case CustomHandler.PurchaseResponseCallback.EPurchaseResult.OK:
+                            Key.appID = res.Items.First().Key;
+                            Key.gameName = res.Items.First().Value;
+                            bot.AlreadyOwnedGames.Add(Key.appID);
+                            Key.botName = this.BotName;
+                            stop = true;
+                            break;
+                        case CustomHandler.PurchaseResponseCallback.EPurchaseResult.AlreadyOwned:
+                            Key.appID = res.Items.First().Key;
+                            Key.gameName = res.Items.First().Value;
+                            bot.AlreadyOwnedGames.Add(Key.appID);
+                            continue;
+                        case CustomHandler.PurchaseResponseCallback.EPurchaseResult.BaseGameRequired:
+                        case CustomHandler.PurchaseResponseCallback.EPurchaseResult.RegionLocked:
+                            continue;
+                        case CustomHandler.PurchaseResponseCallback.EPurchaseResult.InvalidKey:
+                        case CustomHandler.PurchaseResponseCallback.EPurchaseResult.DuplicatedKey:
+                        case CustomHandler.PurchaseResponseCallback.EPurchaseResult.Unknown:
+                            stop = true;
+                            break;
+                    }
+                    if (stop)
+                        break;
                 }
             }
-            return "Done";
-        }
-        internal async Task<CustomHandler.PurchaseResponseCallback> KeyActivate(string key)
+            return Keys;
+        } // Key activate algorithm
+        internal async Task<CustomHandler.PurchaseResponseCallback> KeyActivate(string key) // Key activate method
         {
-            if (string.IsNullOrEmpty(key))
+            if (string.IsNullOrWhiteSpace(key))
                 return null;
 
             CustomHandler.PurchaseResponseCallback callback;
@@ -345,28 +488,28 @@ namespace SteamMultiAccount
 
             webBot.RefreshGamesToFarm().Wait();
 
-            if (!(webBot.appidToFarmSolo.Any() || webBot.appidToFarmMulti.Any())) //If we dont have anything to farm
+            if (!(webBot.GamesToFarmSolo.Any() || webBot.GamesToFarmMulti.Any())) // If we dont have anything to farm
             { 
                 Status = StatusEnum.Connected;
-                FarmGame(0);
+                FarmGame(new List<Game>());
+                timer.Change(TimeSpan.FromMilliseconds(-1), TimeSpan.FromMinutes(15));
+                Status = StatusEnum.Connected;
                 return;
             }
 
-            if (webBot.appidToFarmMulti.Count > 1)
+            if (webBot.GamesToFarmMulti.Count > 1)
             {
-                //Status = $"Farming cards {webBot.appidToFarmMulti.Count} games left";
                 Status = StatusEnum.Farming;
-                FarmGame(webBot.appidToFarmMulti.ToArray());//Farm multi if we have more than 1 game without ability to farm cards
+                FarmGame(webBot.GamesToFarmMulti); // Farm multi if we have more than 1 game without ability to farm cards
             }
             else
             {
-                if (webBot.appidToFarmMulti.Any())
-                    webBot.appidToFarmSolo.Add(webBot.appidToFarmMulti.First());//Else add our list to farm multi to solo farm list
-                //Status = $"Farming cards {webBot.appidToFarmSolo.Count} games left";
+                if (webBot.GamesToFarmMulti.Any())
+                    webBot.GamesToFarmSolo.Add(webBot.GamesToFarmMulti.First()); // Else add our list to farm multi to solo farm list
                 Status = StatusEnum.Farming;
-                FarmGame(webBot.appidToFarmSolo.First());//And farm first game from list
+                FarmGame(webBot.GamesToFarmSolo.First()); // And farm first game from list
             }
-        }
+        } // Cards farming algorithm
         internal async Task<string> UnWatchBroadcastCommand(string[] args)
         {
             if (webBot.bWatchBroadcast)
@@ -395,118 +538,63 @@ namespace SteamMultiAccount
             if (!steamClient.IsConnected || !isRunning)
                 return;
 
-            timer = new Timer(e => Farm());
+            
             if (Status == StatusEnum.Farming)
             {
-                timer.Change(TimeSpan.FromMilliseconds(-1), TimeSpan.FromMinutes(15));
-                FarmGame(0);
+                FarmTimerStop();
+                FarmGame(new List<Game>());
                 Status = StatusEnum.Connected;
             }
             else
-                timer.Change(TimeSpan.FromMilliseconds(0), TimeSpan.FromMinutes(15));
+                FarmTimerStart();
         }
         internal void PauseResume()
         {
             if (steamClient.IsConnected && isRunning)
-            {
-                isManualDisconnect = true;
-                if (steamUser.SteamID != null)
-                    steamUser.LogOff();
-                steamClient.Disconnect();
-            }
+                Stop().Forget();
             else
-                Restart(true);
+                Start().Forget();
         }
-        internal async Task<string> RefreshCMs(string[] args)
+        internal async Task RefreshSessionIfNeeded()
         {
-            await RefreshCMs(ProgramConfig.CellID, true).ConfigureAwait(false);
-            return "CM servers was refreshed";
+            if (!webBot.Initialized)
+                return;
+            if (await webBot.IsLoggedIn().ConfigureAwait(false))
+                return;
+
+            SteamUser.WebAPIUserNonceCallback callback = null;
+            for (byte i = 0; i < 3 && (callback == null || callback.Result != EResult.OK); i++)
+                callback = await steamUser.RequestWebAPIUserNonce();
+            if (callback == null)
+                Log("Cant get webAPI user nonce: " + callback.Result,LogType.Error);
+
+            webBot.Init(this, callback.Nonce).Forget();
+        }
+        internal async Task<string> PlayDota(string[] args)
+        {
+            Log("Launching DOTA 2...", LogType.Info);
+            await dotaBot.Initialize().ConfigureAwait(false);
+            /*
+            FarmGame(new Game(DotaBot.appID, "Dota 2")); // Running dota 2.
+            await Task.Delay(5000); // Wait until game coordinator be ready.
+            var clientHello = new SteamKit2.GC.ClientGCMsgProtobuf<SteamKit2.GC.Dota.Internal.CMsgClientHello>((uint)SteamKit2.GC.Dota.Internal.EGCBaseClientMsg.k_EMsgGCClientHello);
+            clientHello.Body.engine = SteamKit2.GC.Dota.Internal.ESourceEngine.k_ESE_Source2;
+            dotaCoordinator.Send(clientHello,DotaBot.appID);
+            */
+
+            return "";
         }
         /*
         //
         // Methods
         //
         */
-        private bool KeyResponseNeedContinue(CustomHandler.PurchaseResponseCallback callback,string sKey)
-        {
-            bool bContinue = false;
-            switch (callback.PurchaseResult)
-            {
-                case CustomHandler.PurchaseResponseCallback.EPurchaseResult.OnCooldown:
-                    bContinue = true;
-                    Log("Can`t activate key (" + sKey + "), limit reached, try later.", LogType.Info);
-                    break;
-                case CustomHandler.PurchaseResponseCallback.EPurchaseResult.OK:
-                    Log("Key (" + sKey + ") was activate ("+callback.Items.First().Value+").", LogType.Info);
-                    break;
-                case CustomHandler.PurchaseResponseCallback.EPurchaseResult.AlreadyOwned:
-                    Log("Game(" + callback.Items.First().Value + ") already owned.", LogType.Info);
-                    if (!AlreadyOwnedGames.Contains(callback.Items.First().Key))
-                        AlreadyOwnedGames.Add(callback.Items.First().Key);
-                    bContinue = true;
-                    break;
-                case CustomHandler.PurchaseResponseCallback.EPurchaseResult.BaseGameRequired:
-                    Log("Key (" + sKey + ") need base game (" + callback.Items.First().Value + ")", LogType.Info);
-                    bContinue = true;
-                    break;
-                case CustomHandler.PurchaseResponseCallback.EPurchaseResult.DuplicatedKey:
-                    Log("Key (" + sKey + ") is duplicated("+callback.Items.First().Value+").", LogType.Info);
-                    break;
-                case CustomHandler.PurchaseResponseCallback.EPurchaseResult.InvalidKey:
-                    Log("Key (" + sKey + ") is invalid.", LogType.Info);
-                    break;
-                case CustomHandler.PurchaseResponseCallback.EPurchaseResult.RegionLocked:
-                    Log("Can`t activate key (" + sKey + "), region locked.", LogType.Info);
-                    bContinue = true;
-                    break;
-            }
-            return bContinue;
-        }
         internal bool isKey(string Key)
         {
             Match First = Regex.Match(Key, @"[0-9,a-z,A-Z]{5}-[0-9,a-z,A-Z]{5}-[0-9,a-z,A-Z]{5}");
             if (First.Success)
                 return true;
             return false;
-        }
-        internal async Task RefreshCMs(uint _cellID, bool WithoutCache = false)
-        {
-            if (File.Exists(SMAForm.ServerLists) &&
-                DateTime.Now.Subtract(File.GetLastWriteTime(SMAForm.ServerLists)) <
-                TimeSpan.FromMinutes(Config.ServerFileLifeTime) && !WithoutCache)
-            {
-                Config.ServerListLoad(CMClient.Servers);
-                if (CMClient.Servers.GetAllEndPoints().Any())
-                {
-                    Log("CM servers loaded from cache", LogType.Info);
-                    return;
-                }
-            }
-
-            bool initialized = false;
-            for (byte i = 0; i < 3 && !initialized; i++)
-            {
-                try
-                {
-                    Log("Loading list of CM servers", LogType.Info);
-
-                    //await SteamDirectory.Initialize(cellID).ConfigureAwait(false);
-                    var loadServerTask = SteamDirectory.Initialize(_cellID);
-                    loadServerTask.Wait();
-                    if (loadServerTask.IsCompleted)
-                    {
-                        Config.ServerListSave(CMClient.Servers);
-                        initialized = true;
-                    }
-                }
-                catch (Exception e)
-                {
-                    Log("Cant refresh list of CMs " + e.Message, LogType.Error);
-                    await Task.Delay(1000).ConfigureAwait(false);
-                }
-            }
-            if (initialized)
-                Log("Successfully refresh list of CM servers", LogType.Info);
         }
         /*
         //
@@ -524,6 +612,8 @@ namespace SteamMultiAccount
 
             Log("Connected to steam",LogType.Info);
             Status = StatusEnum.Connected;
+
+            string sentryPath = Path.Combine(SMAForm.BotsData, BotName + ".bin");
             byte[] sentryHash = null;
             if (File.Exists(sentryPath))
             {
@@ -531,8 +621,12 @@ namespace SteamMultiAccount
                 byte[] sentryFile = File.ReadAllBytes(sentryPath);
                 sentryHash = CryptoHelper.SHAHash(sentryFile);
             }
-            if (string.IsNullOrEmpty(BotConfig.Login) || string.IsNullOrEmpty(BotConfig.Password))
+            if (string.IsNullOrWhiteSpace(BotConfig.Login) || string.IsNullOrWhiteSpace(BotConfig.Password))
+            {
+                Log("Login or password doesnt entered.", LogType.Warning);
+                steamClient.Disconnect();
                 return;
+            }
 
             steamUser.LogOn(new SteamUser.LogOnDetails
             {
@@ -552,18 +646,19 @@ namespace SteamMultiAccount
         {
             if (needAuthCode || needTwoFactorAuthCode)
                 return;
-            Log("Disconnected from steam",LogType.Info);
-            if (!isManualDisconnect && BotConfig.Enabled)
+            if (Restarting)
             {
-                Log("Reconnecting to steam", LogType.Info);
+                Restarting = false;
                 Thread.Sleep(5000);
                 Start().Forget();
                 return;
             }
-            if (Restarting)
+            Log("Disconnected from steam.",LogType.Info);
+            if (!isManualDisconnect)
             {
-                Restarting = false;
-                Restart();
+                Log("Reconnecting to steam", LogType.Info);
+                Thread.Sleep(5000);
+                Start().Forget();
                 return;
             }
             isRunning = false;
@@ -576,48 +671,54 @@ namespace SteamMultiAccount
             {
                 if (callback.Result == EResult.AccountLogonDenied)
                 {
-                    Log("Auth code was sended on your email.", LogType.Warning);
-                    Log("Please type your auth code.", LogType.Warning);
+                    Log("Auth code was sended to your email.", LogType.Warning);
+                    Log("Please type your auth code below.", LogType.Warning);
                     needAuthCode = true;
                     return;
                 }
                 else if (callback.Result == EResult.AccountLoginDeniedNeedTwoFactor)
                 {
-                    Log("Please type your two factor auth code.", LogType.Warning);
+                    Log("Please type your two factor auth code below.", LogType.Warning);
                     needTwoFactorAuthCode = true;
                     return;
                 }
                 else if (callback.Result == EResult.InvalidPassword)
                 {
-                    if (BotConfig.loginKey != string.Empty) { 
+                    if (!string.IsNullOrWhiteSpace(BotConfig.loginKey))
+                    {
                         BotConfig.loginKey = null;
                         BotConfig.Save();
                         return;
                     }
+                    Log("Invalid password.", LogType.Warning);
                 }
                 else if (callback.Result == EResult.NoConnection)
-                {
-                    Log("No connection", LogType.Warning);
-                }
+                    Log("No connection. Try again later.", LogType.Warning);
                 else
-                Log("Unable to logon to steam (" + callback.Result + ") " + callback.ExtendedResult,LogType.Error);
+                    Log("Unable to logon to steam (" + callback.Result + ") " + callback.ExtendedResult, LogType.Error);
+
                 isRunning = false;
                 initialized = true;
                 Status = StatusEnum.Disabled;
+
                 return;
             }
-            ProgramConfig.SetCellID(callback.CellID);
+            BotConfig.SetCellID(callback.CellID);
             Log("Successfully logged on!",LogType.Info);
             Status = StatusEnum.Connected;
 
-            webBot.Init(this, callback.WebAPIUserNonce).Wait();
-            initialized = true;
-            FarmTimerReset();
+            await webBot.Init(this, callback.WebAPIUserNonce).ConfigureAwait(true);
+            if (webBot.Initialized)
+                AfterWebInit();
+            else
+                initialized = true;
+
+            if (BotConfig.AutoFarm)
+                FarmTimerStart();
         }
         internal async void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
-            timer.Dispose();
-            Log("Logged off of steam (" + callback.Result + ")",LogType.Info);
+            Log("Logged off of steam (" + callback.Result + ")", LogType.Info);
         }
         internal async void OnMachinAuth(SteamUser.UpdateMachineAuthCallback callback)
         {
@@ -660,12 +761,13 @@ namespace SteamMultiAccount
         }
         internal async void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
-            steamFriends.SetPersonaState(EPersonaState.Online);
+            if (!BotConfig.FarmOffline)
+                await steamFriends.SetPersonaState(EPersonaState.Online);
         }
         internal async void OnFriendMessage(SteamFriends.FriendMsgCallback callback)
         {
-            if(callback.EntryType == EChatEntryType.ChatMsg)
-            Response(callback.Message, callback.Sender);
+            if (callback.EntryType == EChatEntryType.ChatMsg)
+                Response(callback.Message, callback.Sender);
         }
         internal async void OnFriendList(SteamFriends.FriendsListCallback callback)
         {
@@ -676,10 +778,12 @@ namespace SteamMultiAccount
                 if (friend.Relationship == EFriendRelationship.RequestRecipient)
                 { 
                     steamFriends.AddFriend(friend.SteamID);
-                    Log(steamFriends.GetFriendPersonaName(friend.SteamID)+" was added to your friends list",LogType.Info);
+                    Log(steamFriends.GetFriendPersonaName(friend.SteamID)+" was added to friends list",LogType.Info);
                 }
-                if (friend.SteamID.IsIndividualAccount)
+                /*
+                if (friend.SteamID.IsIndividualAccount) // Friend list
                     FriendList.Add(friend.SteamID);
+                */
             }
         }
         internal async void OnFreeLicense(SteamApps.FreeLicenseCallback callback)
@@ -707,6 +811,8 @@ namespace SteamMultiAccount
                     Log("Success", LogType.Info);
                     AcceptedSomething = true;
                 }
+                else
+                    Log("Fail", LogType.Info);
             }
             if (AcceptedSomething)
                 Farm();
@@ -716,33 +822,22 @@ namespace SteamMultiAccount
             if (callback == null)
                 return;
             Wallet.HasWallet = callback.HasWallet;
-            if (!Wallet.HasWallet)
-                return;
-            Wallet.Balance = callback.Balance;
-            Wallet.Curency = callback.Currency;
+            if (Wallet.HasWallet)
+            {
+                Wallet.Balance = callback.Balance;
+                Wallet.Curency = callback.Currency;
+            }
 
+        }
+        internal async void AfterWebInit()
+        {
+            initialized = true;
         }
         /*
         //
         // Services
         //
         */
-        private async Task Start()
-        {
-            if (!isRunning)
-            {
-                isRunning = true;
-                Task.Run(() => CallbacksHandler()).Forget();
-            }
-            Log("Connecting to steam...", LogType.Info);
-            steamClient.Connect();
-        }
-        private void FarmTimerReset()
-        {
-            timer = new Timer(e => Farm());
-            TimeSpan startTime = (BotConfig.AutoFarm ? TimeSpan.Zero : TimeSpan.FromMilliseconds(-1));
-            timer.Change(startTime, TimeSpan.FromMinutes(15));
-        }
         private void NetDebug()
         {
             if (!Listener.NetHookAlreadyInitialized && Directory.Exists(SMAForm.DebugDirectory))
@@ -758,6 +853,14 @@ namespace SteamMultiAccount
                 }
             }
         }
+        private void FarmTimerStop()
+        {
+            timer.Change(TimeSpan.FromMilliseconds(-1), TimeSpan.FromMinutes(15));
+        }
+        private void FarmTimerStart()
+        {
+            timer.Change(TimeSpan.FromMilliseconds(0), TimeSpan.FromMinutes(15));
+        }
         private void CallbacksHandler()
         {
             while (isRunning || steamClient.IsConnected)
@@ -769,15 +872,13 @@ namespace SteamMultiAccount
                 }
             }
         }
-        internal void Log(string message, LogType type, [CallerMemberName] string functionName = "")
+        internal void Log(string message, LogType type = LogType.Info, [CallerMemberName] string functionName = "")
         {
-            if (string.IsNullOrEmpty(message))
-                return;
-            logging.Log(message, type, out _logboxText, functionName);
+            logging.Log(message, type, functionName);
         }
         internal string getLogBoxText()
         {
-            return _logboxText;
+            return logging.GetLogBoxText();
         }
         internal void Delete()
         {

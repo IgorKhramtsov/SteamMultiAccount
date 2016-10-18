@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Threading;
 using SteamKit2;
+using System.Threading.Tasks;
 
 namespace SteamMultiAccount
 {
@@ -11,8 +12,10 @@ namespace SteamMultiAccount
     {
         internal const string ConfigDirectory = "config";
         internal const string DebugDirectory = "debug";
-        internal const string ServerLists = ConfigDirectory + "/servers.json";
+        internal const string ServerList = ConfigDirectory + "/servers.bin";
         internal const string BotsData = ConfigDirectory + "/botData";
+        private bool bWantClose = false;
+        private FormWindowState _LastState = FormWindowState.Normal;
         public SMAForm()
         {
             InitializeComponent();
@@ -32,35 +35,66 @@ namespace SteamMultiAccount
             DebugLog.Enabled = true;
 
             textBox1.AutoCompleteCustomSource.AddRange(Bot.CommandsKeys);
+            notifyIconMain.Icon = System.Drawing.SystemIcons.Application;
 
-            CheckBots();//Looking for bot configs
-            if (BotList.Items.Count > 0) BotList.SelectedIndex = 0;//Select first element in list
             // TODO: Getting game from gleam.io
         }
 
-        private void CheckBots()
+        private async Task StartBots()
         {
             if (!Directory.Exists(ConfigDirectory))
                 return;
             if(Directory.GetFiles(ConfigDirectory,"*.json").Length>0)
             {
-                BotList.BeginUpdate();
                 foreach (var configFile in Directory.EnumerateFiles(ConfigDirectory, "*.json"))
                 {
                     string botName = Path.GetFileNameWithoutExtension(configFile);
                     switch (botName)
                     {
-                        case "servers":
                         case "Program":
                             continue;
                     }
                     if (botName == null)
                         return;
-                    Bot bot = new Bot(botName);
-                    BotList.Items.Add(botName);
+                    Bot bot = new Bot(botName,this);
+                    BotList.BeginUpdate();
+                    try
+                    {
+                        BotList.Invoke(new MethodInvoker(delegate
+                        {
+                            BotList.Items.Add(botName);
+                        }));
+                    } catch(Exception e)
+                    {
+                        Logging.LogToFile("Cant add bot to bot list: " + e);
+                    }
+                    BotList.EndUpdate();
+                    if(bot.BotConfig.Enabled)
+                        await Task.Delay(5000); // Wait 5 sec before start next bot
                 }
-                BotList.EndUpdate();
             }
+        }
+        /*
+         * 
+         * Events
+         * 
+         */
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                if (!bWantClose)
+                {
+                    e.Cancel = true; // Cancel if user click on X button
+                    this.Hide();
+                    _LastState = this.WindowState;
+                }
+            }
+            base.OnFormClosing(e);
+        }
+        private async void SMAForm_Shown(object sender, EventArgs e)
+        {
+            await StartBots();
         }
         private void LogBox_Click(object sender, EventArgs e)
         {
@@ -82,14 +116,14 @@ namespace SteamMultiAccount
                 if (y < ((ListBox) sender).Items.Count)
                 { 
                     ((ListBox) sender).SelectedIndex = y;
-                    contextMenuStrip1.Items[1].Visible = true;
-                    contextMenuStrip1.Items[2].Visible = true;
+                    contextMenuStripMain.Items[1].Visible = true;
+                    contextMenuStripMain.Items[2].Visible = true;
                 }
                 else
                 { 
                     ((ListBox) sender).SelectedIndex = -1;
-                    contextMenuStrip1.Items[1].Visible = false;
-                    contextMenuStrip1.Items[2].Visible = false;
+                    contextMenuStripMain.Items[1].Visible = false;
+                    contextMenuStripMain.Items[2].Visible = false;
                 }
             }
         }
@@ -148,9 +182,9 @@ namespace SteamMultiAccount
             UpdateAll(bot);
         }
         /*
-        //
-        // Services
-        //
+        *
+        * Services
+        *
         */
         internal void UpdateLogBox(Bot bot)
         {
@@ -175,7 +209,7 @@ namespace SteamMultiAccount
             }
             if(bot.Status == StatusEnum.Farming)
             { 
-                string text = $"Farming cards {bot.CurrentFarming.Length} games left";
+                string text = $"Farming cards {bot.CurrentFarming.Count} games left";
                 if (StatusLabel.Text == text)
                     return;
                 StatusLabel.Text = text;
@@ -215,7 +249,7 @@ namespace SteamMultiAccount
             buttonConnect.Enabled = bReady;
             buttonFarm.Enabled = bot.Status != StatusEnum.RefreshGamesToFarm;
 
-            if (bot.CurrentFarming != null && bot.CurrentFarming.Any() && bot.CurrentFarming[0] != 0)
+            if (bot.CurrentFarming != null && bot.CurrentFarming.Any())
                 buttonFarm.Text = "Stop farm";
             else
                 buttonFarm.Text = "Farm";
@@ -265,6 +299,20 @@ namespace SteamMultiAccount
             UpdateWallet(bot);
             CheckButtonsStatus(bot);
         }
+
+        private void closeToolStripMenuItemClose_Click(object sender, EventArgs e)
+        {
+            bWantClose = true;
+            this.Close();
+        }
+        private void notifyIconMain_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            this.WindowState = _LastState;
+            this.Activate();
+            this.Show();
+        }
+
+
     }
 
     class Listener : IDebugListener

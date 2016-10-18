@@ -21,12 +21,14 @@ namespace SteamMultiAccount
     internal class Logging
     {
         private string _rtfText;
-        internal Logging(string RtfText)
+        internal Logging()
         {
-            _rtfText = RtfText;
+            _rtfText = "";
         }
-        internal void Log(string message, LogType type, out string Rtf, [CallerMemberName] string functionName = "")
+        internal void Log(string message, LogType type = LogType.Info, [CallerMemberName] string functionName = "")
         {
+            if (string.IsNullOrWhiteSpace(message))
+                return;
             string logMess;
 #if !DEBUG
             functionName = "";
@@ -56,9 +58,8 @@ namespace SteamMultiAccount
                     Log(logMess, Color.OrangeRed);
                     break;
             }
-            Rtf = _rtfText;
         }
-        internal void Log(string message,Color col)
+        private void Log(string message,Color col)
         {
             if (string.IsNullOrEmpty(message))
                 return;
@@ -74,6 +75,10 @@ namespace SteamMultiAccount
             _rBox.AppendText(Environment.NewLine);
             _rtfText = _rBox.Rtf;
             _rBox.Dispose();
+        }
+        internal string GetLogBoxText()
+        {
+            return _rtfText;
         }
         internal static void DebugLogToFile(string message)
         {
@@ -92,7 +97,7 @@ namespace SteamMultiAccount
         internal static void LogToFile(string message, string botname="Programm")
         {
             string path = "log.txt";
-            string loggingmessage = DateTime.Now + " <"+botname+"> "+ message;
+            string loggingmessage = DateTime.Now + " <"+botname+"> "+ message + Environment.NewLine;
             lock (path)
             {
                 try {
@@ -102,5 +107,6 @@ namespace SteamMultiAccount
                 }
             }
         }
+        
     }
 }

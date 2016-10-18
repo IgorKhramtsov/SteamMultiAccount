@@ -30,7 +30,7 @@
         {
             this.components = new System.ComponentModel.Container();
             this.BotList = new System.Windows.Forms.ListBox();
-            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.contextMenuStripMain = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.addToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.changeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -45,17 +45,21 @@
             this.buttonConnect = new System.Windows.Forms.Button();
             this.panel3 = new System.Windows.Forms.Panel();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
-            this.contextMenuStrip1.SuspendLayout();
+            this.notifyIconMain = new System.Windows.Forms.NotifyIcon(this.components);
+            this.contextMenuStripNotifyIcon = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.closeToolStripMenuItemClose = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextMenuStripMain.SuspendLayout();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
             this.flowLayoutPanel1.SuspendLayout();
             this.panel3.SuspendLayout();
+            this.contextMenuStripNotifyIcon.SuspendLayout();
             this.SuspendLayout();
             // 
             // BotList
             // 
             this.BotList.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.BotList.ContextMenuStrip = this.contextMenuStrip1;
+            this.BotList.ContextMenuStrip = this.contextMenuStripMain;
             this.BotList.Dock = System.Windows.Forms.DockStyle.Fill;
             this.BotList.FormattingEnabled = true;
             this.BotList.IntegralHeight = false;
@@ -68,14 +72,14 @@
             this.BotList.SelectedIndexChanged += new System.EventHandler(this.BotList_SelectedIndexChanged);
             this.BotList.MouseDown += new System.Windows.Forms.MouseEventHandler(this.BotList_MouseDown);
             // 
-            // contextMenuStrip1
+            // contextMenuStripMain
             // 
-            this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.contextMenuStripMain.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.addToolStripMenuItem,
             this.changeToolStripMenuItem,
             this.deleteToolStripMenuItem});
-            this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(116, 70);
+            this.contextMenuStripMain.Name = "contextMenuStrip1";
+            this.contextMenuStripMain.Size = new System.Drawing.Size(116, 70);
             // 
             // addToolStripMenuItem
             // 
@@ -186,6 +190,7 @@
             // 
             // buttonFarm
             // 
+            this.buttonFarm.Font = new System.Drawing.Font("Segoe UI", 12F);
             this.buttonFarm.Location = new System.Drawing.Point(3, 40);
             this.buttonFarm.Name = "buttonFarm";
             this.buttonFarm.Size = new System.Drawing.Size(155, 30);
@@ -196,6 +201,7 @@
             // 
             // buttonConnect
             // 
+            this.buttonConnect.Font = new System.Drawing.Font("Segoe UI", 12F);
             this.buttonConnect.Location = new System.Drawing.Point(3, 76);
             this.buttonConnect.Name = "buttonConnect";
             this.buttonConnect.Size = new System.Drawing.Size(155, 30);
@@ -221,6 +227,27 @@
             this.timer1.Interval = 1000;
             this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
             // 
+            // notifyIconMain
+            // 
+            this.notifyIconMain.ContextMenuStrip = this.contextMenuStripNotifyIcon;
+            this.notifyIconMain.Text = "Steam Multi Account";
+            this.notifyIconMain.Visible = true;
+            this.notifyIconMain.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notifyIconMain_MouseDoubleClick);
+            // 
+            // contextMenuStripNotifyIcon
+            // 
+            this.contextMenuStripNotifyIcon.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.closeToolStripMenuItemClose});
+            this.contextMenuStripNotifyIcon.Name = "contextMenuStripNotifyIcon";
+            this.contextMenuStripNotifyIcon.Size = new System.Drawing.Size(104, 26);
+            // 
+            // closeToolStripMenuItemClose
+            // 
+            this.closeToolStripMenuItemClose.Name = "closeToolStripMenuItemClose";
+            this.closeToolStripMenuItemClose.Size = new System.Drawing.Size(103, 22);
+            this.closeToolStripMenuItemClose.Text = "Close";
+            this.closeToolStripMenuItemClose.Click += new System.EventHandler(this.closeToolStripMenuItemClose_Click);
+            // 
             // SMAForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 17F);
@@ -232,13 +259,15 @@
             this.MinimumSize = new System.Drawing.Size(740, 420);
             this.Name = "SMAForm";
             this.Text = "Steam Multi Account";
-            this.contextMenuStrip1.ResumeLayout(false);
+            this.Shown += new System.EventHandler(this.SMAForm_Shown);
+            this.contextMenuStripMain.ResumeLayout(false);
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
             this.panel2.ResumeLayout(false);
             this.flowLayoutPanel1.ResumeLayout(false);
             this.flowLayoutPanel1.PerformLayout();
             this.panel3.ResumeLayout(false);
+            this.contextMenuStripNotifyIcon.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -251,7 +280,7 @@
         private System.Windows.Forms.Panel panel3;
         private System.Windows.Forms.TextBox textBox1;
         public System.Windows.Forms.RichTextBox LogBox;
-        private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
+        private System.Windows.Forms.ContextMenuStrip contextMenuStripMain;
         private System.Windows.Forms.ToolStripMenuItem addToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem changeToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
@@ -261,6 +290,9 @@
         private System.Windows.Forms.Button buttonConnect;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel1;
         private System.Windows.Forms.Label labelWallet;
+        private System.Windows.Forms.NotifyIcon notifyIconMain;
+        private System.Windows.Forms.ContextMenuStrip contextMenuStripNotifyIcon;
+        private System.Windows.Forms.ToolStripMenuItem closeToolStripMenuItemClose;
     }
 }
 
