@@ -78,8 +78,6 @@ namespace SteamMultiAccount
         [JsonProperty]
         public bool FarmOffline { get; set; } = false;
         [JsonProperty]
-        public bool IsAuthorizedInSteamClient { get; set; } = false;
-        [JsonProperty]
         public uint CellID { get;private set; } = 0;
 
         internal BotConfig(string path) : base(path)

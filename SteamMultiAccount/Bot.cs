@@ -48,7 +48,7 @@ namespace SteamMultiAccount
 
         /* Bot flags */
         internal                 bool isRunning, initialized, needAuthCode, needTwoFactorAuthCode, Restarting;
-        private                  bool isManualDisconnect;
+        private                  bool isManualDisconnect,IsSteamRunning;
         /* Temp strings */
         private                  string authCode, twoFactorAuthCode;
         /* Service stuff */
@@ -283,7 +283,7 @@ namespace SteamMultiAccount
                     CurrentFarming.Remove(game);
                 }
             /*If user authorized in steam client*/
-            if (Steamworks.SteamAPI.IsSteamRunning() && BotConfig.IsAuthorizedInSteamClient)
+            if (Steamworks.SteamAPI.IsSteamRunning() && IsSteamRunning)
             {
                 int i = 0;
                 listGames = new List<Game>(CurrentFarming);
@@ -304,9 +304,7 @@ namespace SteamMultiAccount
             /* To stop farming we must send request without games */
             var req = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayed);
             foreach (var game in CurrentFarming)
-            {
                 req.Body.games_played.Add(new CMsgClientGamesPlayed.GamePlayed() { game_id = new GameID(game.appID) });
-            }
             steamClient.Send(req);
         }
         internal void FarmGame(Game game)
@@ -707,6 +705,10 @@ namespace SteamMultiAccount
             Log("Successfully logged on!",LogType.Info);
             Status = StatusEnum.Connected;
 
+            // Check if this account running in steam on this computer
+            if (Steamworks.SteamAPI.IsSteamRunning())
+                IsSteamRunning = GetLastLoggedSteamID() == callback.ClientSteamID;
+
             await webBot.Init(this, callback.WebAPIUserNonce).ConfigureAwait(true);
             if (webBot.Initialized)
                 AfterWebInit();
@@ -884,6 +886,38 @@ namespace SteamMultiAccount
         {
             BotConfig.Delete();
             Bots.Remove(BotName);
+        }
+        internal SteamID GetLastLoggedSteamID()
+        {
+            var ActiveUser = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE").OpenSubKey("Valve")?.OpenSubKey("Steam")?.OpenSubKey("ActiveProcess");
+
+            var userID = ActiveUser?.GetValue("ActiveUser").ToString();
+            int type = 0;
+            switch(ActiveUser?.GetValue("Universe").ToString())
+            {
+                case "Public":
+                    type = 1;
+                    break;
+                case "Beta":
+                    type = 2;
+                    break;
+                case "Internal":
+                    type = 3;
+                    break;
+                case "Dev":
+                    type = 4;
+                    break;
+                case "RC":
+                    type = 5;
+                    break;
+                default:
+                    type = 0;
+                    break;
+            }
+            userID = "[U:" + type + ":" + userID + "]";
+            var steamid = new SteamID();
+            steamid.SetFromSteam3String(userID);
+            return steamid;
         }
     }
 
