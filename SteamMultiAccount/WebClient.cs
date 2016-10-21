@@ -118,7 +118,7 @@ namespace SteamMultiAccount
             catch (Exception e) { Logging.LogToFile("Cant get response: " + e.Message); }
             if (resp == null)
                 return null;
-            return resp.RequestMessage.RequestUri;
+            return resp.Headers.Location;
         }
         
         public async Task<HtmlDocument> GetDocument(HttpResponseMessage resp)

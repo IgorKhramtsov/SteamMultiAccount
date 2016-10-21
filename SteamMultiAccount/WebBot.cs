@@ -135,7 +135,7 @@ namespace SteamMultiAccount
             webClient.cookieContainer.Add(new Cookie("steamLoginSecure", steamLoginSecure, "/", "." + SteamCommunityHOST));
 
             Initialized = true;
-            GiveawayBotInit().Forget();
+            //GiveawayBotInit().Forget();
         }
         internal async Task<bool> RefreshGamesToFarm()
         {

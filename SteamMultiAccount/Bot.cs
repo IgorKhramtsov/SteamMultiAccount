@@ -42,19 +42,22 @@ namespace SteamMultiAccount
         };
         
         private const ushort CallbackSleep = 1000;
+        private const ushort SteamClientCheckSleep = 1000;
         internal static readonly uint loginID = MsgClientLogon.ObfuscationMask;
         internal static readonly Dictionary<string, Bot> Bots = new Dictionary<string, Bot>();
         internal static readonly string[] CommandsKeys = { "Nickname", "Sellcards", "Watch", "Unwatch", "Buy" , "PlayDota"};
 
         /* Bot flags */
         internal                 bool isRunning, initialized, needAuthCode, needTwoFactorAuthCode, Restarting;
-        private                  bool isManualDisconnect,IsSteamRunning;
+        private                  bool isManualDisconnect,authorizedInSteam;
+        private                  bool isSteamWasRunning;
         /* Temp strings */
         private                  string authCode, twoFactorAuthCode;
         /* Service stuff */
         private         readonly SMAForm InitializerForm;
         internal                 System.Threading.Timer timer;
         internal                 delegate Task<string> MyDelegate(string[] args);
+        internal                 CancellationTokenSource SteamCheckCancel;
         /* Lists */
         internal                 List<uint> AlreadyOwnedGames;
         internal                 List<Game> CurrentFarming;
@@ -147,6 +150,8 @@ namespace SteamMultiAccount
             SteamClient.Servers.ServerListProvider = new SteamKit2.Discovery.FileStorageServerListProvider(SMAForm.ServerList);
             NetDebug();
 
+            SteamCheckCancel = new CancellationTokenSource();
+
             if (BotConfig.Enabled)
                 Start().Forget();
             else
@@ -189,6 +194,7 @@ namespace SteamMultiAccount
                 game.StopIdle();
             CurrentFarming.Clear();
             FarmTimerStop();
+            SteamCheckCancel.Cancel();
         }
         internal void Restart()
         {
@@ -271,6 +277,7 @@ namespace SteamMultiAccount
         } // Handle steam chat message
         internal void FarmGame(List<Game> Games)
         {
+            // TODO: Update farming method, when steam close/open
             /* Prepeare CurrentFarming list */
             foreach (var game in Games)
                 if (!CurrentFarming.Contains(game))
@@ -283,8 +290,10 @@ namespace SteamMultiAccount
                     CurrentFarming.Remove(game);
                 }
             /*If user authorized in steam client*/
-            if (Steamworks.SteamAPI.IsSteamRunning() && IsSteamRunning)
+            if (Steamworks.SteamAPI.IsSteamRunning() && authorizedInSteam)
             {
+                if(Games.Count>0)
+                    Log("Farm games by game emulator");
                 int i = 0;
                 listGames = new List<Game>(CurrentFarming);
                 foreach (var game in listGames)
@@ -302,6 +311,8 @@ namespace SteamMultiAccount
             }
             /* If user not authorized in steam client */
             /* To stop farming we must send request without games */
+            if (Games.Count > 0)
+                Log("Farm game by client game played request");
             var req = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayed);
             foreach (var game in CurrentFarming)
                 req.Body.games_played.Add(new CMsgClientGamesPlayed.GamePlayed() { game_id = new GameID(game.appID) });
@@ -536,7 +547,6 @@ namespace SteamMultiAccount
             if (!steamClient.IsConnected || !isRunning)
                 return;
 
-            
             if (Status == StatusEnum.Farming)
             {
                 FarmTimerStop();
@@ -545,6 +555,14 @@ namespace SteamMultiAccount
             }
             else
                 FarmTimerStart();
+        }
+        internal void RestartFarm()
+        {
+            if (!steamClient.IsConnected || !isRunning)
+                return;
+            Log("Restarting farm.");
+            PauseResumeFarm();
+            PauseResumeFarm();
         }
         internal void PauseResume()
         {
@@ -705,9 +723,15 @@ namespace SteamMultiAccount
             Log("Successfully logged on!",LogType.Info);
             Status = StatusEnum.Connected;
 
-            // Check if this account running in steam on this computer
-            if (Steamworks.SteamAPI.IsSteamRunning())
-                IsSteamRunning = GetLastLoggedSteamID() == callback.ClientSteamID;
+            SteamCheckCancel = new CancellationTokenSource();
+            Task.Run(async () => 
+            {
+                while (true)
+                {
+                    CheckSteamClient();
+                    await Task.Delay(SteamClientCheckSleep, SteamCheckCancel.Token);
+                }
+            }, SteamCheckCancel.Token);
 
             await webBot.Init(this, callback.WebAPIUserNonce).ConfigureAwait(true);
             if (webBot.Initialized)
@@ -764,7 +788,7 @@ namespace SteamMultiAccount
         internal async void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
             if (!BotConfig.FarmOffline)
-                await steamFriends.SetPersonaState(EPersonaState.Online);
+                steamFriends.SetPersonaState(EPersonaState.Online);
         }
         internal async void OnFriendMessage(SteamFriends.FriendMsgCallback callback)
         {
@@ -886,6 +910,27 @@ namespace SteamMultiAccount
         {
             BotConfig.Delete();
             Bots.Remove(BotName);
+        }
+        internal void CheckSteamClient()
+        {
+            var ActiveUser = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE").OpenSubKey("Valve")?.OpenSubKey("Steam")?.OpenSubKey("ActiveProcess")?.GetValue("ActiveUser").ToString();
+            if (Steamworks.SteamAPI.IsSteamRunning() && !string.IsNullOrEmpty(ActiveUser) && ActiveUser != "0")
+            {
+                if (!isSteamWasRunning)
+                {
+                    if(Status == StatusEnum.Farming)
+                        RestartFarm();
+                    isSteamWasRunning = true;
+                    authorizedInSteam = GetLastLoggedSteamID() == steamClient.SteamID;
+                }
+            }
+            else if(isSteamWasRunning == true)
+            {
+                if (Status == StatusEnum.Farming)
+                    RestartFarm();
+                isSteamWasRunning = false;
+                authorizedInSteam = false;
+            }
         }
         internal SteamID GetLastLoggedSteamID()
         {
