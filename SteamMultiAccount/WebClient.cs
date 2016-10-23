@@ -35,7 +35,7 @@ namespace SteamMultiAccount
             ServicePointManager.Expect100Continue = false;
             ServicePointManager.ReusePort = true;
         }
-        public async Task<HttpResponseMessage> GetContent(Uri url, Dictionary<string, string> data = null, HttpMethod method = null, CookieCollection cookies  = null,bool bAutoRedir = true)
+        public async Task<HttpResponseMessage> GetContent(Uri url, Dictionary<string, string> data = null, HttpMethod method = null, CookieCollection cookies  = null,bool bAutoRedir = true, Uri referrer = null)
         {
             if (method == null)
                 method = HttpMethod.Get;
@@ -45,8 +45,8 @@ namespace SteamMultiAccount
             if(data != null && data.Any())
             { 
                 if(method != HttpMethod.Get)                        
-                    try { 
-                    req.Content = new FormUrlEncodedContent(data);  // Adding POST data
+                    try {
+                        req.Content = new FormUrlEncodedContent(data);  // Adding POST data
                     } catch(Exception e) {
                         Logging.LogToFile(e.Message);
                     }
@@ -59,6 +59,8 @@ namespace SteamMultiAccount
                     cookieContainer.Add(cookies);
 
             req.Headers.UserAgent.Add(client.DefaultRequestHeaders.UserAgent.First());
+            if (referrer != null)
+                req.Headers.Referrer = referrer;
 
             do
             {

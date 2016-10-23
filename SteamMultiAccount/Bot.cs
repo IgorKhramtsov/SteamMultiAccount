@@ -159,8 +159,8 @@ namespace SteamMultiAccount
                 Status = StatusEnum.Disabled;
                 initialized = true;
             }
-            
         }
+
 
         internal async Task Start()
         {
@@ -277,7 +277,6 @@ namespace SteamMultiAccount
         } // Handle steam chat message
         internal void FarmGame(List<Game> Games)
         {
-            // TODO: Update farming method, when steam close/open
             /* Prepeare CurrentFarming list */
             foreach (var game in Games)
                 if (!CurrentFarming.Contains(game))
@@ -292,7 +291,7 @@ namespace SteamMultiAccount
             /*If user authorized in steam client*/
             if (Steamworks.SteamAPI.IsSteamRunning() && authorizedInSteam)
             {
-                if(Games.Count>0)
+                if(Games.Count > 0)
                     Log("Farm games by game emulator");
                 int i = 0;
                 listGames = new List<Game>(CurrentFarming);
@@ -349,9 +348,7 @@ namespace SteamMultiAccount
                 return "Doesnt have any items to sell.";
             Log("We have " + ItemList.Count + " to sell.", LogType.Info);
             foreach (WebBot._Item Item in ItemList)
-            {
                 Log(await webBot.SellItem(Item).ConfigureAwait(false), LogType.Info);
-            }
             return "All cards sold.";
         }
         internal async Task<string> ChangeNickname(string[] args)
@@ -731,7 +728,7 @@ namespace SteamMultiAccount
                     CheckSteamClient();
                     await Task.Delay(SteamClientCheckSleep, SteamCheckCancel.Token);
                 }
-            }, SteamCheckCancel.Token);
+            }, SteamCheckCancel.Token).Forget();
 
             await webBot.Init(this, callback.WebAPIUserNonce).ConfigureAwait(true);
             if (webBot.Initialized)

@@ -47,9 +47,12 @@ namespace SteamMultiAccount
         }
         internal void Init()
         {
+            if (string.IsNullOrWhiteSpace(_botName))
+                return;
             string path = Path.Combine(SMAForm.ConfigDirectory, _botName);
             var botConfig = new BotConfig(path);
             botConfig = botConfig.Load();
+            botConfig.Login = _botName;
             propertyGrid = new ConfigPropertyGrid(botConfig);
             Controls.Add(propertyGrid);
             if (botCreated)

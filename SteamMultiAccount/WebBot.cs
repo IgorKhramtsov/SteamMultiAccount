@@ -328,6 +328,7 @@ namespace SteamMultiAccount
         }
         internal async Task<string> SellItem(_Item item,int price = 0)
         {
+            await _bot.RefreshSessionIfNeeded().ConfigureAwait(false);
             string sessionID = "";
             var cookies = webClient.cookieContainer.GetCookies(new Uri(SteamCommunityURL));
             try
@@ -339,10 +340,11 @@ namespace SteamMultiAccount
                 return "";
 
             string request = SteamCommunityURL + "/market/sellitem";
+            Uri referrer = new Uri(SteamCommunityURL + "/profiles/" + steamID.ConvertToUInt64() + "/inventory/");
 
-            if (price == 0)//If price not set
+            if (price == 0) // If price not set
             {
-                price = await getPrice(item).ConfigureAwait(false);//Get average price
+                price = await getPrice(item).ConfigureAwait(false); // Get average price
                 if (price == 0)
                     return string.Empty;
             }
@@ -358,7 +360,7 @@ namespace SteamMultiAccount
 
             HttpResponseMessage response = null;
             for (byte i = 0; i < WebClient.MaxRetries && response == null; i++)
-                response = await webClient.GetContent(new Uri(request), data, HttpMethod.Post).ConfigureAwait(false);
+                response = await webClient.GetContent(new Uri(request), data, HttpMethod.Post,referrer: referrer).ConfigureAwait(false);
             if (response == null)
             {
                 _bot.Log($"Request failed even after {WebClient.MaxRetries} tries", LogType.Error);
