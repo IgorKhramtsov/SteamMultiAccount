@@ -94,7 +94,7 @@ namespace SteamMultiAccount
                 }
             }
         }
-        internal static void LogToFile(string message, string botname="Programm")
+        internal static void LogToFile(string message, string botname="Program")
         {
             string path = "log.txt";
             string loggingmessage = DateTime.Now + " <"+botname+"> "+ message + Environment.NewLine;

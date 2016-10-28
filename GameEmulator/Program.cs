@@ -15,7 +15,7 @@ namespace GameEmulator
             Environment.SetEnvironmentVariable("SteamAppId", appID.ToString());
             if(!SteamAPI.Init())
             {
-                return; // If we cant initilize steam api, close the programm
+                return; // If we cant initilize steam api, close the program
             }
             EmptyWorkingSet(Process.GetCurrentProcess().Handle); //Clean memory
 

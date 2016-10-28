@@ -34,7 +34,7 @@ namespace SteamMultiAccount
             DebugLog.AddListener(new Listener(null));
             DebugLog.Enabled = true;
 
-            textBox1.AutoCompleteCustomSource.AddRange(Bot.CommandsKeys);
+            textBoxCommandLine.AutoCompleteCustomSource.AddRange(Bot.CommandsKeys);
             notifyIconMain.Icon = System.Drawing.SystemIcons.Application;
 
             // TODO: Getting game from gleam.io
@@ -103,7 +103,7 @@ namespace SteamMultiAccount
         {
             if (LogBox.SelectionLength > 0)
                 return;
-            textBox1.Select();
+            textBoxCommandLine.Select();
         }
         private void addToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -149,15 +149,15 @@ namespace SteamMultiAccount
         {
             if (e.KeyCode == Keys.Enter)
             {
-                if (string.IsNullOrEmpty(textBox1.Text))
+                if (string.IsNullOrEmpty(textBoxCommandLine.Text))
                     return;
                 Bot bot;
                 if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
                     return;
-                bot.Log(textBox1.Text, LogType.User);
-                bot.Response(textBox1.Text);
+                bot.Log(textBoxCommandLine.Text, LogType.User);
+                bot.Response(textBoxCommandLine.Text);
                 UpdateLogBox(bot);
-                textBox1.Text = string.Empty;
+                textBoxCommandLine.Text = string.Empty;
             }
         }
         private void deleteToolStripMenuItem_Click(object sender, EventArgs e)

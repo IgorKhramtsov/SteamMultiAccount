@@ -21,12 +21,12 @@ namespace SteamMultiAccount
         [STAThread]
         static void Main()
         {
-            /* Set embedded browser emulation to IE 10 for ours programm */
+            /* Set embedded browser emulation to IE 10 for ours program */
             RegistryKey ie_feature_key;
             try { Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION"); } catch { }
             ie_feature_key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION", true);
-            string programmName = Path.GetFileName(Environment.GetCommandLineArgs()[0]);
-            try { ie_feature_key.SetValue(programmName, (int)10001, RegistryValueKind.DWord); } catch { }
+            string programName = Path.GetFileName(Environment.GetCommandLineArgs()[0]);
+            try { ie_feature_key.SetValue(programName, (int)10001, RegistryValueKind.DWord); } catch { }
             /* Check for dependicies */
             if (!File.Exists("GameEmulator.exe"))
                 if (MessageBox.Show("Cant find GameEmulator.exe!") > 0)
