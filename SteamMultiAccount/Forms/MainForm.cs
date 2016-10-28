@@ -145,7 +145,7 @@ namespace SteamMultiAccount
 
             UpdateAll(bot);
         }
-        private void textBox1_KeyDown(object sender, KeyEventArgs e)
+        private void textBoxCommandLine_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
             {
@@ -173,7 +173,7 @@ namespace SteamMultiAccount
             else
                 BotList.SelectedIndex = -1;
         }
-        private void timer1_Tick(object sender, EventArgs e)
+        private void timerBotUpdate_Tick(object sender, EventArgs e)
         {
             if (BotList.SelectedItem == null)
                 return;
@@ -181,7 +181,7 @@ namespace SteamMultiAccount
             Bot bot;
             if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
                 return;
-
+            
             UpdateAll(bot);
         }
         /*
@@ -285,12 +285,12 @@ namespace SteamMultiAccount
                 return;
             BotList.Items.Add(botName);
         }
-        private void button1_Click(object sender, EventArgs e)
+        private void buttonFarm_Click(object sender, EventArgs e)
         {
             Bot bot;
             if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(),out bot))
                 return;
-
+            
             bot.PauseResumeFarm();
         }
         private void OnOffButton_Click(object sender, EventArgs e)

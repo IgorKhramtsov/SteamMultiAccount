@@ -34,27 +34,27 @@
             this.addToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.changeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.panel1 = new System.Windows.Forms.Panel();
+            this.panelRightSide = new System.Windows.Forms.Panel();
             this.LogBox = new System.Windows.Forms.RichTextBox();
-            this.textBox1 = new System.Windows.Forms.TextBox();
-            this.panel2 = new System.Windows.Forms.Panel();
+            this.textBoxCommandLine = new System.Windows.Forms.TextBox();
+            this.panelLeftSide = new System.Windows.Forms.Panel();
             this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
-            this.flowLayoutPanel2 = new System.Windows.Forms.FlowLayoutPanel();
+            this.flowLayoutPanelMainFunc = new System.Windows.Forms.FlowLayoutPanel();
             this.StatusLabel = new System.Windows.Forms.Label();
             this.labelWallet = new System.Windows.Forms.Label();
-            this.panel3 = new System.Windows.Forms.Panel();
-            this.timer1 = new System.Windows.Forms.Timer(this.components);
+            this.buttonFarm = new SteamMultiAccount.ButtonStylized();
+            this.buttonConnect = new SteamMultiAccount.ButtonStylized();
+            this.panelBotListBack = new System.Windows.Forms.Panel();
+            this.timerBotUpdate = new System.Windows.Forms.Timer(this.components);
             this.notifyIconMain = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStripNotifyIcon = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.closeToolStripMenuItemClose = new System.Windows.Forms.ToolStripMenuItem();
-            this.buttonConnect = new SteamMultiAccount.ButtonStylized();
-            this.buttonFarm = new SteamMultiAccount.ButtonStylized();
             this.contextMenuStripMain.SuspendLayout();
-            this.panel1.SuspendLayout();
-            this.panel2.SuspendLayout();
+            this.panelRightSide.SuspendLayout();
+            this.panelLeftSide.SuspendLayout();
             this.flowLayoutPanel1.SuspendLayout();
-            this.flowLayoutPanel2.SuspendLayout();
-            this.panel3.SuspendLayout();
+            this.flowLayoutPanelMainFunc.SuspendLayout();
+            this.panelBotListBack.SuspendLayout();
             this.contextMenuStripNotifyIcon.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -105,19 +105,19 @@
             this.deleteToolStripMenuItem.Text = "Delete";
             this.deleteToolStripMenuItem.Click += new System.EventHandler(this.deleteToolStripMenuItem_Click);
             // 
-            // panel1
+            // panelRightSide
             // 
-            this.panel1.BackColor = System.Drawing.SystemColors.ButtonShadow;
-            this.panel1.Controls.Add(this.LogBox);
-            this.panel1.Controls.Add(this.textBox1);
-            this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panel1.Location = new System.Drawing.Point(286, 0);
-            this.panel1.Margin = new System.Windows.Forms.Padding(0);
-            this.panel1.MinimumSize = new System.Drawing.Size(432, 360);
-            this.panel1.Name = "panel1";
-            this.panel1.Padding = new System.Windows.Forms.Padding(1, 1, 0, 0);
-            this.panel1.Size = new System.Drawing.Size(438, 381);
-            this.panel1.TabIndex = 1;
+            this.panelRightSide.BackColor = System.Drawing.SystemColors.ButtonShadow;
+            this.panelRightSide.Controls.Add(this.LogBox);
+            this.panelRightSide.Controls.Add(this.textBoxCommandLine);
+            this.panelRightSide.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panelRightSide.Location = new System.Drawing.Point(286, 0);
+            this.panelRightSide.Margin = new System.Windows.Forms.Padding(0);
+            this.panelRightSide.MinimumSize = new System.Drawing.Size(432, 360);
+            this.panelRightSide.Name = "panelRightSide";
+            this.panelRightSide.Padding = new System.Windows.Forms.Padding(1, 1, 0, 0);
+            this.panelRightSide.Size = new System.Drawing.Size(438, 381);
+            this.panelRightSide.TabIndex = 1;
             // 
             // LogBox
             // 
@@ -135,39 +135,39 @@
             this.LogBox.Text = "";
             this.LogBox.Click += new System.EventHandler(this.LogBox_Click);
             // 
-            // textBox1
+            // textBoxCommandLine
             // 
-            this.textBox1.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.Suggest;
-            this.textBox1.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.CustomSource;
-            this.textBox1.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.textBox1.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.textBox1.Location = new System.Drawing.Point(1, 363);
-            this.textBox1.Margin = new System.Windows.Forms.Padding(0);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(437, 18);
-            this.textBox1.TabIndex = 0;
-            this.textBox1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.textBox1_KeyDown);
+            this.textBoxCommandLine.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.Suggest;
+            this.textBoxCommandLine.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.CustomSource;
+            this.textBoxCommandLine.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.textBoxCommandLine.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.textBoxCommandLine.Location = new System.Drawing.Point(1, 363);
+            this.textBoxCommandLine.Margin = new System.Windows.Forms.Padding(0);
+            this.textBoxCommandLine.Name = "textBoxCommandLine";
+            this.textBoxCommandLine.Size = new System.Drawing.Size(437, 18);
+            this.textBoxCommandLine.TabIndex = 0;
+            this.textBoxCommandLine.KeyDown += new System.Windows.Forms.KeyEventHandler(this.textBoxCommandLine_KeyDown);
             // 
-            // panel2
+            // panelLeftSide
             // 
-            this.panel2.BackColor = System.Drawing.SystemColors.ActiveBorder;
-            this.panel2.Controls.Add(this.flowLayoutPanel1);
-            this.panel2.Controls.Add(this.panel3);
-            this.panel2.Dock = System.Windows.Forms.DockStyle.Left;
-            this.panel2.Location = new System.Drawing.Point(0, 0);
-            this.panel2.Margin = new System.Windows.Forms.Padding(0);
-            this.panel2.MinimumSize = new System.Drawing.Size(250, 360);
-            this.panel2.Name = "panel2";
-            this.panel2.Padding = new System.Windows.Forms.Padding(0, 1, 0, 0);
-            this.panel2.Size = new System.Drawing.Size(286, 381);
-            this.panel2.TabIndex = 2;
+            this.panelLeftSide.BackColor = System.Drawing.SystemColors.ActiveBorder;
+            this.panelLeftSide.Controls.Add(this.flowLayoutPanel1);
+            this.panelLeftSide.Controls.Add(this.panelBotListBack);
+            this.panelLeftSide.Dock = System.Windows.Forms.DockStyle.Left;
+            this.panelLeftSide.Location = new System.Drawing.Point(0, 0);
+            this.panelLeftSide.Margin = new System.Windows.Forms.Padding(0);
+            this.panelLeftSide.MinimumSize = new System.Drawing.Size(250, 360);
+            this.panelLeftSide.Name = "panelLeftSide";
+            this.panelLeftSide.Padding = new System.Windows.Forms.Padding(0, 1, 0, 0);
+            this.panelLeftSide.Size = new System.Drawing.Size(286, 381);
+            this.panelLeftSide.TabIndex = 2;
             // 
             // flowLayoutPanel1
             // 
             this.flowLayoutPanel1.AutoScroll = true;
             this.flowLayoutPanel1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.flowLayoutPanel1.BackColor = System.Drawing.SystemColors.Control;
-            this.flowLayoutPanel1.Controls.Add(this.flowLayoutPanel2);
+            this.flowLayoutPanel1.Controls.Add(this.flowLayoutPanelMainFunc);
             this.flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel1.Location = new System.Drawing.Point(120, 1);
             this.flowLayoutPanel1.Margin = new System.Windows.Forms.Padding(0);
@@ -175,20 +175,20 @@
             this.flowLayoutPanel1.Size = new System.Drawing.Size(166, 380);
             this.flowLayoutPanel1.TabIndex = 5;
             // 
-            // flowLayoutPanel2
+            // flowLayoutPanelMainFunc
             // 
-            this.flowLayoutPanel2.AutoSize = true;
-            this.flowLayoutPanel2.BackColor = System.Drawing.SystemColors.Control;
-            this.flowLayoutPanel2.Controls.Add(this.StatusLabel);
-            this.flowLayoutPanel2.Controls.Add(this.labelWallet);
-            this.flowLayoutPanel2.Controls.Add(this.buttonConnect);
-            this.flowLayoutPanel2.Controls.Add(this.buttonFarm);
-            this.flowLayoutPanel2.Location = new System.Drawing.Point(0, 0);
-            this.flowLayoutPanel2.Margin = new System.Windows.Forms.Padding(0);
-            this.flowLayoutPanel2.Name = "flowLayoutPanel2";
-            this.flowLayoutPanel2.Padding = new System.Windows.Forms.Padding(0, 0, 0, 2);
-            this.flowLayoutPanel2.Size = new System.Drawing.Size(166, 100);
-            this.flowLayoutPanel2.TabIndex = 6;
+            this.flowLayoutPanelMainFunc.AutoSize = true;
+            this.flowLayoutPanelMainFunc.BackColor = System.Drawing.SystemColors.Control;
+            this.flowLayoutPanelMainFunc.Controls.Add(this.StatusLabel);
+            this.flowLayoutPanelMainFunc.Controls.Add(this.labelWallet);
+            this.flowLayoutPanelMainFunc.Controls.Add(this.buttonFarm);
+            this.flowLayoutPanelMainFunc.Controls.Add(this.buttonConnect);
+            this.flowLayoutPanelMainFunc.Location = new System.Drawing.Point(0, 0);
+            this.flowLayoutPanelMainFunc.Margin = new System.Windows.Forms.Padding(0);
+            this.flowLayoutPanelMainFunc.Name = "flowLayoutPanelMainFunc";
+            this.flowLayoutPanelMainFunc.Padding = new System.Windows.Forms.Padding(0, 0, 0, 2);
+            this.flowLayoutPanelMainFunc.Size = new System.Drawing.Size(166, 100);
+            this.flowLayoutPanelMainFunc.TabIndex = 6;
             // 
             // StatusLabel
             // 
@@ -211,22 +211,50 @@
             this.labelWallet.TabIndex = 5;
             this.labelWallet.Text = "Wallet:\r\n";
             // 
-            // panel3
+            // buttonFarm
             // 
-            this.panel3.BackColor = System.Drawing.SystemColors.ButtonShadow;
-            this.panel3.Controls.Add(this.BotList);
-            this.panel3.Dock = System.Windows.Forms.DockStyle.Left;
-            this.panel3.Location = new System.Drawing.Point(0, 1);
-            this.panel3.Name = "panel3";
-            this.panel3.Padding = new System.Windows.Forms.Padding(0, 0, 1, 0);
-            this.panel3.Size = new System.Drawing.Size(120, 380);
-            this.panel3.TabIndex = 1;
+            this.buttonFarm.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
+            this.buttonFarm.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.buttonFarm.Font = new System.Drawing.Font("Segoe UI", 12F);
+            this.buttonFarm.Location = new System.Drawing.Point(3, 36);
+            this.buttonFarm.Margin = new System.Windows.Forms.Padding(3, 2, 3, 0);
+            this.buttonFarm.Name = "buttonFarm";
+            this.buttonFarm.Size = new System.Drawing.Size(160, 30);
+            this.buttonFarm.TabIndex = 3;
+            this.buttonFarm.Text = "Farm";
+            this.buttonFarm.UseVisualStyleBackColor = true;
+            this.buttonFarm.Click += new System.EventHandler(this.buttonFarm_Click);
             // 
-            // timer1
+            // buttonConnect
             // 
-            this.timer1.Enabled = true;
-            this.timer1.Interval = 1000;
-            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
+            this.buttonConnect.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
+            this.buttonConnect.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.buttonConnect.Font = new System.Drawing.Font("Segoe UI", 12F);
+            this.buttonConnect.Location = new System.Drawing.Point(3, 68);
+            this.buttonConnect.Margin = new System.Windows.Forms.Padding(3, 2, 3, 0);
+            this.buttonConnect.Name = "buttonConnect";
+            this.buttonConnect.Size = new System.Drawing.Size(160, 30);
+            this.buttonConnect.TabIndex = 4;
+            this.buttonConnect.Text = "Connect";
+            this.buttonConnect.UseVisualStyleBackColor = true;
+            this.buttonConnect.Click += new System.EventHandler(this.OnOffButton_Click);
+            // 
+            // panelBotListBack
+            // 
+            this.panelBotListBack.BackColor = System.Drawing.SystemColors.ButtonShadow;
+            this.panelBotListBack.Controls.Add(this.BotList);
+            this.panelBotListBack.Dock = System.Windows.Forms.DockStyle.Left;
+            this.panelBotListBack.Location = new System.Drawing.Point(0, 1);
+            this.panelBotListBack.Name = "panelBotListBack";
+            this.panelBotListBack.Padding = new System.Windows.Forms.Padding(0, 0, 1, 0);
+            this.panelBotListBack.Size = new System.Drawing.Size(120, 380);
+            this.panelBotListBack.TabIndex = 1;
+            // 
+            // timerBotUpdate
+            // 
+            this.timerBotUpdate.Enabled = true;
+            this.timerBotUpdate.Interval = 1000;
+            this.timerBotUpdate.Tick += new System.EventHandler(this.timerBotUpdate_Tick);
             // 
             // notifyIconMain
             // 
@@ -249,55 +277,27 @@
             this.closeToolStripMenuItemClose.Text = "Close";
             this.closeToolStripMenuItemClose.Click += new System.EventHandler(this.closeToolStripMenuItemClose_Click);
             // 
-            // buttonConnect
-            // 
-            this.buttonConnect.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
-            this.buttonConnect.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonConnect.Font = new System.Drawing.Font("Segoe UI", 12F);
-            this.buttonConnect.Location = new System.Drawing.Point(3, 36);
-            this.buttonConnect.Margin = new System.Windows.Forms.Padding(3, 2, 3, 0);
-            this.buttonConnect.Name = "buttonConnect";
-            this.buttonConnect.Size = new System.Drawing.Size(160, 30);
-            this.buttonConnect.TabIndex = 4;
-            this.buttonConnect.Text = "Connect";
-            this.buttonConnect.UseVisualStyleBackColor = true;
-            this.buttonConnect.Click += new System.EventHandler(this.OnOffButton_Click);
-            // 
-            // buttonFarm
-            // 
-            this.buttonFarm.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
-            this.buttonFarm.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonFarm.Font = new System.Drawing.Font("Segoe UI", 12F);
-            this.buttonFarm.Location = new System.Drawing.Point(3, 68);
-            this.buttonFarm.Margin = new System.Windows.Forms.Padding(3, 2, 3, 0);
-            this.buttonFarm.Name = "buttonFarm";
-            this.buttonFarm.Size = new System.Drawing.Size(160, 30);
-            this.buttonFarm.TabIndex = 3;
-            this.buttonFarm.Text = "Farm";
-            this.buttonFarm.UseVisualStyleBackColor = true;
-            this.buttonFarm.Click += new System.EventHandler(this.button1_Click);
-            // 
             // SMAForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 17F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(724, 381);
-            this.Controls.Add(this.panel1);
-            this.Controls.Add(this.panel2);
+            this.Controls.Add(this.panelRightSide);
+            this.Controls.Add(this.panelLeftSide);
             this.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.MinimumSize = new System.Drawing.Size(740, 420);
             this.Name = "SMAForm";
             this.Text = "Steam Multi Account";
             this.Shown += new System.EventHandler(this.SMAForm_Shown);
             this.contextMenuStripMain.ResumeLayout(false);
-            this.panel1.ResumeLayout(false);
-            this.panel1.PerformLayout();
-            this.panel2.ResumeLayout(false);
+            this.panelRightSide.ResumeLayout(false);
+            this.panelRightSide.PerformLayout();
+            this.panelLeftSide.ResumeLayout(false);
             this.flowLayoutPanel1.ResumeLayout(false);
             this.flowLayoutPanel1.PerformLayout();
-            this.flowLayoutPanel2.ResumeLayout(false);
-            this.flowLayoutPanel2.PerformLayout();
-            this.panel3.ResumeLayout(false);
+            this.flowLayoutPanelMainFunc.ResumeLayout(false);
+            this.flowLayoutPanelMainFunc.PerformLayout();
+            this.panelBotListBack.ResumeLayout(false);
             this.contextMenuStripNotifyIcon.ResumeLayout(false);
             this.ResumeLayout(false);
 
@@ -306,16 +306,16 @@
         #endregion
 
         public System.Windows.Forms.ListBox BotList;
-        private System.Windows.Forms.Panel panel1;
-        private System.Windows.Forms.Panel panel2;
-        private System.Windows.Forms.Panel panel3;
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.Panel panelRightSide;
+        private System.Windows.Forms.Panel panelLeftSide;
+        private System.Windows.Forms.Panel panelBotListBack;
+        private System.Windows.Forms.TextBox textBoxCommandLine;
         public System.Windows.Forms.RichTextBox LogBox;
         private System.Windows.Forms.ContextMenuStrip contextMenuStripMain;
         private System.Windows.Forms.ToolStripMenuItem addToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem changeToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
-        private System.Windows.Forms.Timer timer1;
+        private System.Windows.Forms.Timer timerBotUpdate;
         private System.Windows.Forms.Label StatusLabel;
         private ButtonStylized buttonFarm;
         private ButtonStylized buttonConnect;
@@ -324,7 +324,7 @@
         private System.Windows.Forms.NotifyIcon notifyIconMain;
         private System.Windows.Forms.ContextMenuStrip contextMenuStripNotifyIcon;
         private System.Windows.Forms.ToolStripMenuItem closeToolStripMenuItemClose;
-        private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel2;
+        private System.Windows.Forms.FlowLayoutPanel flowLayoutPanelMainFunc;
     }
 }
 
