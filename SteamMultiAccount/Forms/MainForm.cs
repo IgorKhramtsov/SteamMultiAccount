@@ -44,7 +44,7 @@ namespace SteamMultiAccount
         {
             if (!Directory.Exists(ConfigDirectory))
                 return;
-            if(Directory.GetFiles(ConfigDirectory,"*.json").Length>0)
+            if(Directory.GetFiles(ConfigDirectory,"*.json").Length > 0)
             {
                 foreach (var configFile in Directory.EnumerateFiles(ConfigDirectory, "*.json"))
                 {
@@ -56,7 +56,9 @@ namespace SteamMultiAccount
                     }
                     if (botName == null)
                         return;
-                    Bot bot = new Bot(botName,this);
+                    
+
+                    Bot bot = new Bot(botName, this);
                     BotList.BeginUpdate();
                     try
                     {
@@ -69,8 +71,9 @@ namespace SteamMultiAccount
                         Logging.LogToFile("Cant add bot to bot list: " + e);
                     }
                     BotList.EndUpdate();
-                    if(bot.BotConfig.Enabled)
-                        await Task.Delay(5000); // Wait 5 sec before start next bot
+
+                    if (BotList.SelectedIndex == -1) BotList.SelectedIndex = 0; // Select first element
+                    if (bot.BotConfig.Enabled) await Task.Delay(5000); // Wait 5 sec before start next bot
                 }
             }
         }
@@ -138,7 +141,7 @@ namespace SteamMultiAccount
             if ((sender as ListBox).SelectedIndex == -1)
                 bot = null;
             else            
-            Bot.Bots.TryGetValue((sender as ListBox).SelectedItem.ToString(), out bot);
+                Bot.Bots.TryGetValue((sender as ListBox).SelectedItem.ToString(), out bot);
 
             UpdateAll(bot);
         }
@@ -209,7 +212,7 @@ namespace SteamMultiAccount
             }
             if(bot.Status == StatusEnum.Farming)
             { 
-                string text = $"Farming cards {bot.CurrentFarming.Count} games left";
+                string text = $"Farming {bot.CurrentFarming.Count} of {bot.GetGamesToFarmCount} games.";
                 if (StatusLabel.Text == text)
                     return;
                 StatusLabel.Text = text;
@@ -233,6 +236,13 @@ namespace SteamMultiAccount
                 walletInfo = "Wallet: " + (float)bot.Wallet.Balance/100 + " " + bot.Wallet.Curency;
             if (labelWallet.Text != walletInfo)
                 labelWallet.Text = walletInfo;
+        }
+        private void UpdateAll(Bot bot)
+        {
+            UpdateLogBox(bot);
+            UpdateStatus(bot);
+            UpdateWallet(bot);
+            CheckButtonsStatus(bot);
         }
         internal void CheckButtonsStatus(Bot bot)
         {
@@ -279,9 +289,7 @@ namespace SteamMultiAccount
         {
             Bot bot;
             if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(),out bot))
-            {
                 return;
-            }
 
             bot.PauseResumeFarm();
         }
@@ -292,13 +300,7 @@ namespace SteamMultiAccount
                 return;
             bot.PauseResume();
         }
-        private void UpdateAll(Bot bot)
-        {
-            UpdateLogBox(bot);
-            UpdateStatus(bot);
-            UpdateWallet(bot);
-            CheckButtonsStatus(bot);
-        }
+
 
         private void closeToolStripMenuItemClose_Click(object sender, EventArgs e)
         {
@@ -315,6 +317,21 @@ namespace SteamMultiAccount
 
     }
 
+    class ButtonStylized:Button
+    {
+        public ButtonStylized()
+        {
+            this.Margin = new Padding(3, 2, 3, 0);
+            this.FlatStyle = FlatStyle.Flat;
+            this.Font = new System.Drawing.Font("Segoe UI", 12F);
+            this.BackColor = System.Drawing.Color.FromArgb(255,250, 250, 250);
+            this.FlatAppearance.BorderSize = 1;
+            this.FlatAppearance.BorderColor = System.Drawing.SystemColors.ActiveBorder;
+            this.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(255, 220, 220, 220);
+            this.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(255, 240, 240, 240);
+            this.SetStyle(ControlStyles.Selectable, false);
+        }
+    }
     class Listener : IDebugListener
     {
         internal static bool NetHookAlreadyInitialized { get; set; } = false;

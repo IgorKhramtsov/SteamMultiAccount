@@ -640,7 +640,7 @@ namespace SteamMultiAccount
                 steamClient.Disconnect();
                 return;
             }
-
+            // TODO: Get two factor code from steamguard file(If it exist)
             steamUser.LogOn(new SteamUser.LogOnDetails
             {
                 Username = BotConfig.Login,
@@ -960,6 +960,10 @@ namespace SteamMultiAccount
             var steamid = new SteamID();
             steamid.SetFromSteam3String(userID);
             return steamid;
+        }
+        public int GetGamesToFarmCount
+        {
+            get { return this.webBot.GamesToFarmMulti.Count + this.webBot.GamesToFarmSolo.Count; }
         }
     }
 
