@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Windows.Forms;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Steamworks;
@@ -13,14 +12,20 @@ namespace GameEmulator
         static void Main(string[] args)
         {
             long appID = long.Parse(args[0]);
-            //long appID = 570;
             Environment.SetEnvironmentVariable("SteamAppId", appID.ToString());
             if(!SteamAPI.Init())
             {
-                return; // If we cant initilize steam api we close the programm
+                return; // If we cant initilize steam api, close the programm
             }
             EmptyWorkingSet(Process.GetCurrentProcess().Handle); //Clean memory
-            Application.Run();
+
+#if DEBUG
+            Process.GetProcessesByName("SteamMultiAccount.vshost")[0].WaitForExit();
+#else
+            Process.GetProcessesByName("SteamMultiAccount")[0].WaitForExit();
+#endif
+            return;
         }
+
     }
 }
