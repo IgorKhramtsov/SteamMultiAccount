@@ -50,7 +50,7 @@ namespace SteamMultiAccount
         }
         ~Game()
         {
-            if (process != null && process.HasExited != true)
+            if (process != null && !process.HasExited)
                 process.Kill();
         }
     }

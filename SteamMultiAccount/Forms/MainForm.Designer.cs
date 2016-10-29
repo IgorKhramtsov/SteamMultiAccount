@@ -38,12 +38,17 @@
             this.LogBox = new System.Windows.Forms.RichTextBox();
             this.textBoxCommandLine = new System.Windows.Forms.TextBox();
             this.panelLeftSide = new System.Windows.Forms.Panel();
-            this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
+            this.flowLayoutPanelPlugins = new System.Windows.Forms.FlowLayoutPanel();
             this.flowLayoutPanelMainFunc = new System.Windows.Forms.FlowLayoutPanel();
             this.StatusLabel = new System.Windows.Forms.Label();
             this.labelWallet = new System.Windows.Forms.Label();
-            this.buttonFarm = new SteamMultiAccount.ButtonStylized();
             this.buttonConnect = new SteamMultiAccount.ButtonStylized();
+            this.ModulePanelFarm = new SteamMultiAccount.ModulePanel();
+            this.labelFarming = new System.Windows.Forms.Label();
+            this.buttonFarm = new SteamMultiAccount.ButtonStylized();
+            this.modulePanelCardsSelling = new SteamMultiAccount.ModulePanel();
+            this.labelCardsSelling = new System.Windows.Forms.Label();
+            this.buttonStylizedSellCards = new SteamMultiAccount.ButtonStylized();
             this.panelBotListBack = new System.Windows.Forms.Panel();
             this.timerBotUpdate = new System.Windows.Forms.Timer(this.components);
             this.notifyIconMain = new System.Windows.Forms.NotifyIcon(this.components);
@@ -52,8 +57,10 @@
             this.contextMenuStripMain.SuspendLayout();
             this.panelRightSide.SuspendLayout();
             this.panelLeftSide.SuspendLayout();
-            this.flowLayoutPanel1.SuspendLayout();
+            this.flowLayoutPanelPlugins.SuspendLayout();
             this.flowLayoutPanelMainFunc.SuspendLayout();
+            this.ModulePanelFarm.SuspendLayout();
+            this.modulePanelCardsSelling.SuspendLayout();
             this.panelBotListBack.SuspendLayout();
             this.contextMenuStripNotifyIcon.SuspendLayout();
             this.SuspendLayout();
@@ -151,7 +158,7 @@
             // panelLeftSide
             // 
             this.panelLeftSide.BackColor = System.Drawing.SystemColors.ActiveBorder;
-            this.panelLeftSide.Controls.Add(this.flowLayoutPanel1);
+            this.panelLeftSide.Controls.Add(this.flowLayoutPanelPlugins);
             this.panelLeftSide.Controls.Add(this.panelBotListBack);
             this.panelLeftSide.Dock = System.Windows.Forms.DockStyle.Left;
             this.panelLeftSide.Location = new System.Drawing.Point(0, 0);
@@ -162,18 +169,20 @@
             this.panelLeftSide.Size = new System.Drawing.Size(286, 381);
             this.panelLeftSide.TabIndex = 2;
             // 
-            // flowLayoutPanel1
+            // flowLayoutPanelPlugins
             // 
-            this.flowLayoutPanel1.AutoScroll = true;
-            this.flowLayoutPanel1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.flowLayoutPanel1.BackColor = System.Drawing.SystemColors.Control;
-            this.flowLayoutPanel1.Controls.Add(this.flowLayoutPanelMainFunc);
-            this.flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.flowLayoutPanel1.Location = new System.Drawing.Point(120, 1);
-            this.flowLayoutPanel1.Margin = new System.Windows.Forms.Padding(0);
-            this.flowLayoutPanel1.Name = "flowLayoutPanel1";
-            this.flowLayoutPanel1.Size = new System.Drawing.Size(166, 380);
-            this.flowLayoutPanel1.TabIndex = 5;
+            this.flowLayoutPanelPlugins.AutoScroll = true;
+            this.flowLayoutPanelPlugins.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.flowLayoutPanelPlugins.BackColor = System.Drawing.SystemColors.Control;
+            this.flowLayoutPanelPlugins.Controls.Add(this.flowLayoutPanelMainFunc);
+            this.flowLayoutPanelPlugins.Controls.Add(this.ModulePanelFarm);
+            this.flowLayoutPanelPlugins.Controls.Add(this.modulePanelCardsSelling);
+            this.flowLayoutPanelPlugins.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.flowLayoutPanelPlugins.Location = new System.Drawing.Point(120, 1);
+            this.flowLayoutPanelPlugins.Margin = new System.Windows.Forms.Padding(0);
+            this.flowLayoutPanelPlugins.Name = "flowLayoutPanelPlugins";
+            this.flowLayoutPanelPlugins.Size = new System.Drawing.Size(166, 380);
+            this.flowLayoutPanelPlugins.TabIndex = 5;
             // 
             // flowLayoutPanelMainFunc
             // 
@@ -181,13 +190,12 @@
             this.flowLayoutPanelMainFunc.BackColor = System.Drawing.SystemColors.Control;
             this.flowLayoutPanelMainFunc.Controls.Add(this.StatusLabel);
             this.flowLayoutPanelMainFunc.Controls.Add(this.labelWallet);
-            this.flowLayoutPanelMainFunc.Controls.Add(this.buttonFarm);
             this.flowLayoutPanelMainFunc.Controls.Add(this.buttonConnect);
             this.flowLayoutPanelMainFunc.Location = new System.Drawing.Point(0, 0);
             this.flowLayoutPanelMainFunc.Margin = new System.Windows.Forms.Padding(0);
             this.flowLayoutPanelMainFunc.Name = "flowLayoutPanelMainFunc";
             this.flowLayoutPanelMainFunc.Padding = new System.Windows.Forms.Padding(0, 0, 0, 2);
-            this.flowLayoutPanelMainFunc.Size = new System.Drawing.Size(166, 100);
+            this.flowLayoutPanelMainFunc.Size = new System.Drawing.Size(166, 68);
             this.flowLayoutPanelMainFunc.TabIndex = 6;
             // 
             // StatusLabel
@@ -211,12 +219,51 @@
             this.labelWallet.TabIndex = 5;
             this.labelWallet.Text = "Wallet:\r\n";
             // 
+            // buttonConnect
+            // 
+            this.buttonConnect.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
+            this.buttonConnect.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.buttonConnect.Font = new System.Drawing.Font("Segoe UI", 12F);
+            this.buttonConnect.Location = new System.Drawing.Point(3, 36);
+            this.buttonConnect.Margin = new System.Windows.Forms.Padding(3, 2, 3, 0);
+            this.buttonConnect.Name = "buttonConnect";
+            this.buttonConnect.Size = new System.Drawing.Size(160, 30);
+            this.buttonConnect.TabIndex = 4;
+            this.buttonConnect.Text = "Connect";
+            this.buttonConnect.UseVisualStyleBackColor = true;
+            this.buttonConnect.Click += new System.EventHandler(this.OnOffButton_Click);
+            // 
+            // ModulePanelFarm
+            // 
+            this.ModulePanelFarm.AutoSize = true;
+            this.ModulePanelFarm.BackColor = System.Drawing.SystemColors.Control;
+            this.ModulePanelFarm.Controls.Add(this.labelFarming);
+            this.ModulePanelFarm.Controls.Add(this.buttonFarm);
+            this.ModulePanelFarm.Location = new System.Drawing.Point(0, 68);
+            this.ModulePanelFarm.Margin = new System.Windows.Forms.Padding(0);
+            this.ModulePanelFarm.ModuleName = "Farming";
+            this.ModulePanelFarm.Name = "ModulePanelFarm";
+            this.ModulePanelFarm.NameMargin = 2;
+            this.ModulePanelFarm.Padding = new System.Windows.Forms.Padding(0, 20, 0, 2);
+            this.ModulePanelFarm.Size = new System.Drawing.Size(166, 71);
+            this.ModulePanelFarm.TabIndex = 7;
+            // 
+            // labelFarming
+            // 
+            this.labelFarming.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.labelFarming.Location = new System.Drawing.Point(2, 22);
+            this.labelFarming.Margin = new System.Windows.Forms.Padding(2, 2, 2, 0);
+            this.labelFarming.Name = "labelFarming";
+            this.labelFarming.Size = new System.Drawing.Size(155, 15);
+            this.labelFarming.TabIndex = 2;
+            this.labelFarming.Text = "Farming cards 18 games left";
+            // 
             // buttonFarm
             // 
             this.buttonFarm.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
             this.buttonFarm.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.buttonFarm.Font = new System.Drawing.Font("Segoe UI", 12F);
-            this.buttonFarm.Location = new System.Drawing.Point(3, 36);
+            this.buttonFarm.Location = new System.Drawing.Point(3, 39);
             this.buttonFarm.Margin = new System.Windows.Forms.Padding(3, 2, 3, 0);
             this.buttonFarm.Name = "buttonFarm";
             this.buttonFarm.Size = new System.Drawing.Size(160, 30);
@@ -225,19 +272,44 @@
             this.buttonFarm.UseVisualStyleBackColor = true;
             this.buttonFarm.Click += new System.EventHandler(this.buttonFarm_Click);
             // 
-            // buttonConnect
+            // modulePanelCardsSelling
             // 
-            this.buttonConnect.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
-            this.buttonConnect.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonConnect.Font = new System.Drawing.Font("Segoe UI", 12F);
-            this.buttonConnect.Location = new System.Drawing.Point(3, 68);
-            this.buttonConnect.Margin = new System.Windows.Forms.Padding(3, 2, 3, 0);
-            this.buttonConnect.Name = "buttonConnect";
-            this.buttonConnect.Size = new System.Drawing.Size(160, 30);
-            this.buttonConnect.TabIndex = 4;
-            this.buttonConnect.Text = "Connect";
-            this.buttonConnect.UseVisualStyleBackColor = true;
-            this.buttonConnect.Click += new System.EventHandler(this.OnOffButton_Click);
+            this.modulePanelCardsSelling.AutoSize = true;
+            this.modulePanelCardsSelling.BackColor = System.Drawing.SystemColors.Control;
+            this.modulePanelCardsSelling.Controls.Add(this.labelCardsSelling);
+            this.modulePanelCardsSelling.Controls.Add(this.buttonStylizedSellCards);
+            this.modulePanelCardsSelling.Location = new System.Drawing.Point(0, 139);
+            this.modulePanelCardsSelling.Margin = new System.Windows.Forms.Padding(0);
+            this.modulePanelCardsSelling.ModuleName = "Card selling";
+            this.modulePanelCardsSelling.Name = "modulePanelCardsSelling";
+            this.modulePanelCardsSelling.NameMargin = 2;
+            this.modulePanelCardsSelling.Padding = new System.Windows.Forms.Padding(0, 20, 0, 2);
+            this.modulePanelCardsSelling.Size = new System.Drawing.Size(166, 71);
+            this.modulePanelCardsSelling.TabIndex = 8;
+            // 
+            // labelCardsSelling
+            // 
+            this.labelCardsSelling.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.labelCardsSelling.Location = new System.Drawing.Point(2, 22);
+            this.labelCardsSelling.Margin = new System.Windows.Forms.Padding(2, 2, 2, 0);
+            this.labelCardsSelling.Name = "labelCardsSelling";
+            this.labelCardsSelling.Size = new System.Drawing.Size(155, 15);
+            this.labelCardsSelling.TabIndex = 4;
+            this.labelCardsSelling.Text = "Selling 1 of 23";
+            // 
+            // buttonStylizedSellCards
+            // 
+            this.buttonStylizedSellCards.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
+            this.buttonStylizedSellCards.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.buttonStylizedSellCards.Font = new System.Drawing.Font("Segoe UI", 12F);
+            this.buttonStylizedSellCards.Location = new System.Drawing.Point(3, 39);
+            this.buttonStylizedSellCards.Margin = new System.Windows.Forms.Padding(3, 2, 3, 0);
+            this.buttonStylizedSellCards.Name = "buttonStylizedSellCards";
+            this.buttonStylizedSellCards.Size = new System.Drawing.Size(160, 30);
+            this.buttonStylizedSellCards.TabIndex = 3;
+            this.buttonStylizedSellCards.Text = "Sell cards";
+            this.buttonStylizedSellCards.UseVisualStyleBackColor = true;
+            this.buttonStylizedSellCards.Click += new System.EventHandler(this.buttonStylizedSellCards_Click);
             // 
             // panelBotListBack
             // 
@@ -293,10 +365,12 @@
             this.panelRightSide.ResumeLayout(false);
             this.panelRightSide.PerformLayout();
             this.panelLeftSide.ResumeLayout(false);
-            this.flowLayoutPanel1.ResumeLayout(false);
-            this.flowLayoutPanel1.PerformLayout();
+            this.flowLayoutPanelPlugins.ResumeLayout(false);
+            this.flowLayoutPanelPlugins.PerformLayout();
             this.flowLayoutPanelMainFunc.ResumeLayout(false);
             this.flowLayoutPanelMainFunc.PerformLayout();
+            this.ModulePanelFarm.ResumeLayout(false);
+            this.modulePanelCardsSelling.ResumeLayout(false);
             this.panelBotListBack.ResumeLayout(false);
             this.contextMenuStripNotifyIcon.ResumeLayout(false);
             this.ResumeLayout(false);
@@ -317,14 +391,19 @@
         private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
         private System.Windows.Forms.Timer timerBotUpdate;
         private System.Windows.Forms.Label StatusLabel;
-        private ButtonStylized buttonFarm;
         private ButtonStylized buttonConnect;
-        private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel1;
+        private System.Windows.Forms.FlowLayoutPanel flowLayoutPanelPlugins;
         private System.Windows.Forms.Label labelWallet;
         private System.Windows.Forms.NotifyIcon notifyIconMain;
         private System.Windows.Forms.ContextMenuStrip contextMenuStripNotifyIcon;
         private System.Windows.Forms.ToolStripMenuItem closeToolStripMenuItemClose;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanelMainFunc;
+        private ModulePanel ModulePanelFarm;
+        private ButtonStylized buttonFarm;
+        private ModulePanel modulePanelCardsSelling;
+        private ButtonStylized buttonStylizedSellCards;
+        public System.Windows.Forms.Label labelCardsSelling;
+        public System.Windows.Forms.Label labelFarming;
     }
 }
 

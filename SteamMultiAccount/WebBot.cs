@@ -46,11 +46,12 @@ namespace SteamMultiAccount
             [JsonProperty(Required = Required.DisallowNull)]
             internal string instanceid { get; set; }// Together with classid, uniquely identifies the display of the item
         }
-        internal struct _Item
+        internal class Item
         {
             internal string market_name;
             internal string asset_id;
             internal string name;
+            internal int price;
         }
 
         private SteamID steamID;
@@ -175,7 +176,7 @@ namespace SteamMultiAccount
             if (!GamesToFarmSolo.Any() && !GamesToFarmMulti.Any())
                 _bot.Log("Have nothing to farm", LogType.Info);
             else
-                _bot.Log($"We have {GamesToFarmSolo.Count} to farm solo and {GamesToFarmMulti.Count} to farm multi", LogType.Info); // Log count of game to idle
+                _bot.Log($"We have {GamesToFarmSolo.Count} to farm solo and {GamesToFarmMulti.Count} to farm together", LogType.Info); // Log count of game to idle
 
             return true;
         }
@@ -223,7 +224,7 @@ namespace SteamMultiAccount
             }
             return true;
         }
-        internal async Task<int> getPrice(_Item item)
+        internal async Task<int> getPrice(Item item)
         {
             JObject jObject = null;
             item.market_name = item.market_name.Replace("&", "%26");
@@ -236,7 +237,7 @@ namespace SteamMultiAccount
                 return 0;
             }
 
-            JToken jToken = jObject["prices"];//Get token with price value
+            JToken jToken = jObject["prices"]; // Get token with price value
             if (jToken == null)
             {
                 _bot.Log("JToken is null", LogType.Error);
@@ -244,15 +245,16 @@ namespace SteamMultiAccount
             }
             float price = 0;
             int PriceCount = 0;
-            for (JToken token = jToken.Last; token != null && PriceCount < 50; token = token.Previous)//Get 50 prices from end
+            for (JToken token = jToken.Last; token != null && PriceCount < 50; token = token.Previous) // Get 50 prices from end
             {
                 price += token[1].Value<float>();
                 PriceCount++;
             }
             price /= PriceCount;
+            item.price = (int)(price * 100);
             return (int)(price * 100);
         }
-        internal async Task<List<_Item>> GetTraddableItems()
+        internal async Task<List<Item>> GetTraddableItems()
         {
             JObject jObject = null;
             for (byte i = 0; i < WebClient.MaxRetries && jObject == null; i++)
@@ -317,17 +319,19 @@ namespace SteamMultiAccount
             }
 
 
-            var items = new List<_Item>();
+            var items = new List<Item>();
             foreach (SteamItem item in result_inv)
             {
                 Item_desc a = result_desc.Find(x => (x.classid == item.classid) && (x.instanceid == item.instanceid) && (x.marketable == true));
                 if (a != null)
-                    items.Add(new _Item { market_name = a.market_hash_name, asset_id = item.assetid, name = a.Name });
+                    items.Add(new Item { market_name = a.market_hash_name, asset_id = item.assetid, name = a.Name });
             }
             return items;
         }
-        internal async Task<string> SellItem(_Item item,int price = 0)
+        internal async Task<bool> SellItem(Item item,int price = 0)
         {
+            // TODO: Accepting trades from mobile auth
+
             await _bot.RefreshSessionIfNeeded().ConfigureAwait(false);
             string sessionID = "";
             var cookies = webClient.cookieContainer.GetCookies(new Uri(SteamCommunityURL));
@@ -335,18 +339,26 @@ namespace SteamMultiAccount
             {
                 sessionID = cookies["sessionid"].Value;
             }
-            catch (Exception e) { Logging.LogToFile("Cookie doesnt exist: " + e.Message); return ""; }
+            catch (Exception e) { Logging.LogToFile("Cookie doesnt exist: " + e.Message); return false; }
             if (string.IsNullOrEmpty(sessionID))
-                return "";
+            {
+                _bot.Log("sessionID isnt set",LogType.Error);
+                return false;
+            }
 
             string request = SteamCommunityURL + "/market/sellitem";
             Uri referrer = new Uri(SteamCommunityURL + "/profiles/" + steamID.ConvertToUInt64() + "/inventory/");
 
-            if (price == 0) // If price not set
+            // Order of price:
+            // 1) Function argument
+            // 2)  Item field
+            // 3)   Function result
+            if (price == 0)
+                price = (item.price != 0) ? item.price : await getPrice(item).ConfigureAwait(false);
+            if (price == 0)
             {
-                price = await getPrice(item).ConfigureAwait(false); // Get average price
-                if (price == 0)
-                    return string.Empty;
+                _bot.Log($"Cant get price of \"{item.name}\"", LogType.Error);
+                return false;
             }
 
             Dictionary<string, string> data = new Dictionary<string, string>(6) {
@@ -363,17 +375,18 @@ namespace SteamMultiAccount
                 response = await webClient.GetContent(new Uri(request), data, HttpMethod.Post,referrer: referrer).ConfigureAwait(false);
             if (response == null)
             {
-                _bot.Log($"Request failed even after {WebClient.MaxRetries} tries", LogType.Error);
-                return string.Empty;
+                _bot.Log($"Request for selling failed even after {WebClient.MaxRetries} tries", LogType.Error);
+                return false;
             }
             switch (response.StatusCode)
             {
-                case System.Net.HttpStatusCode.OK:
-                    return $"Предммет \"{item.name}\" будет выставлен на продажу за {(float)(price) / 100} Руб. пожалуйста потвердите лот.";
-                case System.Net.HttpStatusCode.BadGateway:
-                    return $"Предмет \"{item.name}\" ожидает потверждения.";
+                case HttpStatusCode.OK:
+                    return true;
+                case HttpStatusCode.BadGateway:
+                    return true;
                 default:
-                    return $"Ошибка при выставлении \"{item.name}\" на продажу ({response.StatusCode})";
+                    _bot.Log($"\"{item.name}\" error while selling: ({response.StatusCode})", LogType.Error);
+                    return false;
             }
         }
         internal async Task<string> AddToCart(string subID)

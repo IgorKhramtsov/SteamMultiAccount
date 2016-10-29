@@ -1,10 +1,12 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Windows.Forms;
 using System.IO;
 using System.Threading;
 using SteamKit2;
 using System.Threading.Tasks;
+using System.Drawing;
+using System.ComponentModel;
 
 namespace SteamMultiAccount
 {
@@ -94,6 +96,12 @@ namespace SteamMultiAccount
                 }
             }
             base.OnFormClosing(e);
+        }
+        protected override void OnShown(EventArgs e)
+        {
+            labelCardsSelling.Text = "";
+            labelFarming.Text = "";
+            base.OnShown(e);
         }
         private async void SMAForm_Shown(object sender, EventArgs e)
         {
@@ -212,15 +220,12 @@ namespace SteamMultiAccount
             }
             if(bot.Status == StatusEnum.Farming)
             { 
-                string text = $"Farming {bot.CurrentFarming.Count} of {bot.GetGamesToFarmCount} games.";
-                if (StatusLabel.Text == text)
-                    return;
-                StatusLabel.Text = text;
-                return;
+                //string text = $"Farming {bot.CurrentFarming.Count} of {bot.GetGamesToFarmCount} games.";
+                //if (labelFarming.Text != text)
+                    //labelFarming.Text = text;
             }
-            if (StatusLabel.Text == Bot.StatusString[(int)bot.Status])
-                return;
-            StatusLabel.Text = Bot.StatusString[(int)bot.Status];
+            if (StatusLabel.Text != Bot.StatusString[(int)bot.Status])
+                StatusLabel.Text = Bot.StatusString[(int)bot.Status];
         }
         internal void UpdateWallet(Bot bot)
         {
@@ -249,35 +254,28 @@ namespace SteamMultiAccount
             if (bot == null)
             {
                 buttonConnect.Visible = false;
+                ModulePanelFarm.Visible = false;
+                modulePanelCardsSelling.Visible = false;
                 buttonFarm.Visible = false;
                 return;
             }
-            bool bReady = bot.Status != StatusEnum.Connecting && bot.initialized;
-
             buttonConnect.Visible = true;
 
-            buttonConnect.Enabled = bReady;
-            buttonFarm.Enabled = bot.Status != StatusEnum.RefreshGamesToFarm;
+            bool isReady = (bot.Status != StatusEnum.Connecting && bot.initialized);
+            bool isConnected = (isReady && bot.Status != StatusEnum.Disabled && bot.steamClient.IsConnected);
+            bool isLoggedIn = (bot.steamClient.IsConnected && bot.steamClient.SteamID?.AccountType == EAccountType.Individual);
+            bool isFarming = (bot.Status == StatusEnum.Farming);
 
-            if (bot.CurrentFarming != null && bot.CurrentFarming.Any())
-                buttonFarm.Text = "Stop farm";
-            else
-                buttonFarm.Text = "Farm";
+            ModulePanelFarm.Visible = isLoggedIn;
+            modulePanelCardsSelling.Visible = isLoggedIn;
+            labelCardsSelling.Visible = !(string.IsNullOrEmpty(labelCardsSelling.Text));
+            labelFarming.Visible = !(string.IsNullOrEmpty(labelFarming.Text));
 
-            if (bot.Status != StatusEnum.Disabled && bReady && bot.steamClient.IsConnected )
-                buttonFarm.Visible = true;
-            else
-                buttonFarm.Visible = false;
+            buttonConnect.Enabled = isReady;
+            buttonFarm.Enabled = (bot.Status != StatusEnum.RefreshGamesToFarm);
 
-            if (bot.isRunning && bot.steamClient.SteamID != null &&
-                bot.steamClient.SteamID.AccountType == EAccountType.Individual)
-            {
-                buttonConnect.Text = "Disconnect";
-            }
-            else
-            {
-                buttonConnect.Text = "Connect";
-            }
+            buttonFarm.Text = (bot.CurrentFarming.Any()) ? "Stop farm" : "Farm";
+            buttonConnect.Text = (isLoggedIn) ? "Disconnect" : "Connect";
         }
         public void BotListAdd(string botName)
         {
@@ -301,7 +299,6 @@ namespace SteamMultiAccount
             bot.PauseResume();
         }
 
-
         private void closeToolStripMenuItemClose_Click(object sender, EventArgs e)
         {
             bWantClose = true;
@@ -314,9 +311,51 @@ namespace SteamMultiAccount
             this.Show();
         }
 
-
+        private async void buttonStylizedSellCards_Click(object sender, EventArgs e)
+        {
+            Bot bot;
+            if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
+                return;
+            (sender as Control).Enabled = false;
+            await bot.Sellcards().ConfigureAwait(false);
+            (sender as Control).Enabled = true;
+        }
     }
-
+    class ModulePanel : FlowLayoutPanel
+    {
+        private string moduleName;
+        private int nameMargin;
+        [Category("Appearance")]
+        public string ModuleName { get { return moduleName; } set { moduleName = value; Invalidate(); } }
+        [Category("Appearance")]
+        public int NameMargin { get { return nameMargin; } set { nameMargin = value; Invalidate(); } }
+        public ModulePanel()
+        {
+            nameMargin = 2;
+            this.Padding = new Padding(0, 10, 0, 0);
+        }
+        protected override void OnPaddingChanged(EventArgs e)
+        {
+            this.Padding = new Padding(
+                this.Padding.Left,
+                20,
+                this.Padding.Right,
+                this.Padding.Bottom);
+            base.OnPaddingChanged(e);
+        }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            Brush textBrush = new SolidBrush(Color.FromArgb(255, 20, 20, 20));
+            Font textFont = new Font("Segoe UI", 10F);
+            SizeF measureString = e.Graphics.MeasureString(moduleName, textFont);
+            e.Graphics.DrawString(moduleName, textFont, textBrush, new PointF(10, 0));
+            Brush lineBrush = new SolidBrush(SystemColors.ActiveBorder);
+            Pen linePen = new Pen(lineBrush);
+            e.Graphics.DrawLine(linePen, new PointF(0, measureString.Height / 2), new PointF(12 - nameMargin, measureString.Height / 2));
+            e.Graphics.DrawLine(linePen, new PointF(measureString.Width + 4 + nameMargin, measureString.Height/2), new PointF(e.ClipRectangle.Width, measureString.Height / 2));
+        }
+    }
     class ButtonStylized:Button
     {
         public ButtonStylized()

@@ -38,7 +38,7 @@ namespace SteamMultiAccount
             "Connected",
             "Disabled",
             "Farming",
-            "Refresh games to farm"
+            "Refreshing games to farm"
         };
         
         private const ushort CallbackSleep = 1000;
@@ -51,6 +51,7 @@ namespace SteamMultiAccount
         internal                 bool isRunning, initialized, needAuthCode, needTwoFactorAuthCode, Restarting;
         private                  bool isManualDisconnect,authorizedInSteam;
         private                  bool isSteamWasRunning;
+        private                  bool isLimited;
         /* Temp strings */
         private                  string authCode, twoFactorAuthCode;
         /* Service stuff */
@@ -62,7 +63,6 @@ namespace SteamMultiAccount
         internal                 List<uint> AlreadyOwnedGames;
         internal                 List<Game> CurrentFarming;
         internal        readonly Dictionary<string, MyDelegate> Commands;
-        internal        readonly List<SteamID> FriendList = new List<SteamID>();
         internal                 StatusEnum Status;
         internal                 sWallet Wallet;
         /* Environment variables*/
@@ -81,7 +81,6 @@ namespace SteamMultiAccount
         internal        readonly DotaBot dotaBot;
 
         internal        readonly CustomHandler customHandler;
-        
 
         internal Bot(string botName,SMAForm initializer)
         {
@@ -92,7 +91,7 @@ namespace SteamMultiAccount
             InitializerForm = initializer;
             BotName = botName;
             BotPath = Path.Combine(SMAForm.ConfigDirectory, BotName);
-            
+
             AlreadyOwnedGames = new List<uint>();
             CurrentFarming = new List<Game>();
             Commands = new Dictionary<string, MyDelegate>()
@@ -160,7 +159,6 @@ namespace SteamMultiAccount
                 initialized = true;
             }
         }
-
 
         internal async Task Start()
         {
@@ -291,7 +289,7 @@ namespace SteamMultiAccount
             /*If user authorized in steam client*/
             if (Steamworks.SteamAPI.IsSteamRunning() && authorizedInSteam)
             {
-                if(Games.Count > 0)
+                if (Games.Count > 0)
                     Log("Farm games by game emulator");
                 int i = 0;
                 listGames = new List<Game>(CurrentFarming);
@@ -306,16 +304,21 @@ namespace SteamMultiAccount
                     game.StartIdle();
                     i++;
                 }
-                return;
             }
-            /* If user not authorized in steam client */
-            /* To stop farming we must send request without games */
-            if (Games.Count > 0)
-                Log("Farm game by client game played request");
-            var req = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayed);
-            foreach (var game in CurrentFarming)
-                req.Body.games_played.Add(new CMsgClientGamesPlayed.GamePlayed() { game_id = new GameID(game.appID) });
-            steamClient.Send(req);
+            else
+            {
+                /* If user not authorized in steam client */
+                /* To stop farming we must send request without games */
+                if (Games.Count > 0)
+                    Log("Farm game by client game played request");
+                var req = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayed);
+                foreach (var game in CurrentFarming)
+                    req.Body.games_played.Add(new CMsgClientGamesPlayed.GamePlayed() { game_id = new GameID(game.appID) });
+                steamClient.Send(req);
+            }
+            InitializerForm.Invoke(new MethodInvoker(delegate {
+                InitializerForm.labelFarming.Text = CurrentFarming.Count == 0 ? "" : $"Farming {CurrentFarming.Count} of {GetGamesToFarmCount} games.";
+            }));
         }
         internal void FarmGame(Game game)
         {
@@ -332,24 +335,36 @@ namespace SteamMultiAccount
         // Commands
         //  
         */
-        internal string FriendListShow(string[] args = null)
-        {
-            StringBuilder sb = new StringBuilder();
-            foreach (var friend in FriendList)
-            {
-                sb.Append(Environment.NewLine + "[" + friend.ConvertToUInt64() + "] " + steamFriends.GetFriendPersonaName(friend));
-            }
-            return sb.ToString();
-        }
         internal async Task<string> Sellcards(string[] args = null)
         {
-            List<WebBot._Item> ItemList = await webBot.GetTraddableItems().ConfigureAwait(false);
-            if (ItemList == null)
+            List<WebBot.Item> Cards = await webBot.GetTraddableItems().ConfigureAwait(false);
+                
+            if (Cards == null)
                 return "Doesnt have any items to sell.";
-            Log("We have " + ItemList.Count + " to sell.", LogType.Info);
-            foreach (WebBot._Item Item in ItemList)
-                Log(await webBot.SellItem(Item).ConfigureAwait(false), LogType.Info);
-            return "All cards sold.";
+            int CardsCount = Cards.Count;
+            Log("We have " + CardsCount + " cards.", LogType.Info);
+            if (isLimited)
+            {
+                Log("But this account is limited.");
+                return "";
+            }
+
+            List<Task> getPrices = new List<Task>(Cards.Count);
+            var a = Cards.GetEnumerator();
+            foreach (WebBot.Item item in Cards)
+                getPrices.Add(webBot.getPrice(item));
+            await Task.WhenAll(getPrices).ConfigureAwait(false);
+
+            List<WebBot.Item> Items = new List<WebBot.Item>(Cards);
+            foreach (WebBot.Item Item in Items)
+                if (await webBot.SellItem(Item).ConfigureAwait(false))
+                {
+                    Cards.Remove(Item);
+                    InitializerForm.Invoke(new MethodInvoker(delegate {
+                        InitializerForm.labelCardsSelling.Text = (Cards.Count == 0) ? "All cards sold." : $"{CardsCount - Cards.Count} of {CardsCount} was sold.";
+                    }));
+                }
+            return "";
         }
         internal async Task<string> ChangeNickname(string[] args)
         {
@@ -680,6 +695,7 @@ namespace SteamMultiAccount
         }
         internal async void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
+            
             if (callback.Result != EResult.OK)
             {
                 if (callback.Result == EResult.AccountLogonDenied)
@@ -716,10 +732,13 @@ namespace SteamMultiAccount
 
                 return;
             }
+            isLimited = callback.AccountFlags.HasFlag(EAccountFlags.LimitedUser);
+
             BotConfig.SetCellID(callback.CellID);
             Log("Successfully logged on!",LogType.Info);
             Status = StatusEnum.Connected;
 
+            // TODO: steamClient checking on all bots, fix it
             SteamCheckCancel = new CancellationTokenSource();
             Task.Run(async () => 
             {
@@ -963,7 +982,12 @@ namespace SteamMultiAccount
         }
         public int GetGamesToFarmCount
         {
-            get { return this.webBot.GamesToFarmMulti.Count + this.webBot.GamesToFarmSolo.Count; }
+            get {
+                if (this.webBot.GamesToFarmMulti.Count > 1)
+                    return this.webBot.GamesToFarmMulti.Count + this.webBot.GamesToFarmSolo.Count;
+                else
+                    return this.webBot.GamesToFarmSolo.Count;  // if GamesToFarmMulti = 1, we already add this game to Solo list
+            }
         }
     }
 
