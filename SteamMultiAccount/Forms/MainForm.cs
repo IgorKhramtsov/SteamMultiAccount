@@ -268,6 +268,7 @@ namespace SteamMultiAccount
 
             ModulePanelFarm.Visible = isLoggedIn;
             modulePanelCardsSelling.Visible = isLoggedIn;
+            modulePanelGiveaways.Visible = isLoggedIn;
             labelCardsSelling.Visible = !(string.IsNullOrEmpty(labelCardsSelling.Text));
             labelFarming.Visible = !(string.IsNullOrEmpty(labelFarming.Text));
 
@@ -319,6 +320,15 @@ namespace SteamMultiAccount
             (sender as Control).Enabled = false;
             await bot.Sellcards().ConfigureAwait(false);
             (sender as Control).Enabled = true;
+        }
+
+        private void buttonStylizedGiveawaysOpen_Click(object sender, EventArgs e)
+        {
+            Bot bot;
+            if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
+                return;
+            GiveawayForm giveawayForm = new GiveawayForm(this, bot.webBot);
+            giveawayForm.Show();
         }
     }
     class ModulePanel : FlowLayoutPanel

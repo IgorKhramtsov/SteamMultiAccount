@@ -112,7 +112,7 @@ namespace SteamMultiAccount
             steamFriends = steamClient.GetHandler<SteamFriends>();
             steamApps = steamClient.GetHandler<SteamApps>();
             callbackManager = new CallbackManager(steamClient);
-            webBot = new WebBot();
+            webBot = new WebBot(this);
             customHandler = new CustomHandler();
 
             BotConfig = BotConfig.Load();
@@ -601,7 +601,7 @@ namespace SteamMultiAccount
             if (callback == null)
                 Log("Cant get webAPI user nonce: " + callback.Result,LogType.Error);
 
-            webBot.Init(this, callback.Nonce).Forget();
+            webBot.Init(callback.Nonce).Forget();
         }
         internal async Task<string> PlayDota(string[] args)
         {
@@ -758,7 +758,7 @@ namespace SteamMultiAccount
                 }
             }, SteamCheckCancel.Token).Forget();
 
-            await webBot.Init(this, callback.WebAPIUserNonce).ConfigureAwait(true);
+            await webBot.Init(callback.WebAPIUserNonce).ConfigureAwait(true);
             if (webBot.Initialized)
                 AfterWebInit();
             else

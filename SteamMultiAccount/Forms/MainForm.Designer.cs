@@ -39,7 +39,7 @@
             this.textBoxCommandLine = new System.Windows.Forms.TextBox();
             this.panelLeftSide = new System.Windows.Forms.Panel();
             this.flowLayoutPanelPlugins = new System.Windows.Forms.FlowLayoutPanel();
-            this.flowLayoutPanelMainFunc = new System.Windows.Forms.FlowLayoutPanel();
+            this.flowLayoutPanelMain = new System.Windows.Forms.FlowLayoutPanel();
             this.StatusLabel = new System.Windows.Forms.Label();
             this.labelWallet = new System.Windows.Forms.Label();
             this.buttonConnect = new SteamMultiAccount.ButtonStylized();
@@ -54,15 +54,19 @@
             this.notifyIconMain = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStripNotifyIcon = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.closeToolStripMenuItemClose = new System.Windows.Forms.ToolStripMenuItem();
+            this.modulePanelGiveaways = new SteamMultiAccount.ModulePanel();
+            this.labelGiveawaysStatus = new System.Windows.Forms.Label();
+            this.buttonStylizedGiveawaysOpen = new SteamMultiAccount.ButtonStylized();
             this.contextMenuStripMain.SuspendLayout();
             this.panelRightSide.SuspendLayout();
             this.panelLeftSide.SuspendLayout();
             this.flowLayoutPanelPlugins.SuspendLayout();
-            this.flowLayoutPanelMainFunc.SuspendLayout();
+            this.flowLayoutPanelMain.SuspendLayout();
             this.ModulePanelFarm.SuspendLayout();
             this.modulePanelCardsSelling.SuspendLayout();
             this.panelBotListBack.SuspendLayout();
             this.contextMenuStripNotifyIcon.SuspendLayout();
+            this.modulePanelGiveaways.SuspendLayout();
             this.SuspendLayout();
             // 
             // BotList
@@ -174,9 +178,10 @@
             this.flowLayoutPanelPlugins.AutoScroll = true;
             this.flowLayoutPanelPlugins.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.flowLayoutPanelPlugins.BackColor = System.Drawing.SystemColors.Control;
-            this.flowLayoutPanelPlugins.Controls.Add(this.flowLayoutPanelMainFunc);
+            this.flowLayoutPanelPlugins.Controls.Add(this.flowLayoutPanelMain);
             this.flowLayoutPanelPlugins.Controls.Add(this.ModulePanelFarm);
             this.flowLayoutPanelPlugins.Controls.Add(this.modulePanelCardsSelling);
+            this.flowLayoutPanelPlugins.Controls.Add(this.modulePanelGiveaways);
             this.flowLayoutPanelPlugins.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanelPlugins.Location = new System.Drawing.Point(120, 1);
             this.flowLayoutPanelPlugins.Margin = new System.Windows.Forms.Padding(0);
@@ -184,19 +189,19 @@
             this.flowLayoutPanelPlugins.Size = new System.Drawing.Size(166, 380);
             this.flowLayoutPanelPlugins.TabIndex = 5;
             // 
-            // flowLayoutPanelMainFunc
+            // flowLayoutPanelMain
             // 
-            this.flowLayoutPanelMainFunc.AutoSize = true;
-            this.flowLayoutPanelMainFunc.BackColor = System.Drawing.SystemColors.Control;
-            this.flowLayoutPanelMainFunc.Controls.Add(this.StatusLabel);
-            this.flowLayoutPanelMainFunc.Controls.Add(this.labelWallet);
-            this.flowLayoutPanelMainFunc.Controls.Add(this.buttonConnect);
-            this.flowLayoutPanelMainFunc.Location = new System.Drawing.Point(0, 0);
-            this.flowLayoutPanelMainFunc.Margin = new System.Windows.Forms.Padding(0);
-            this.flowLayoutPanelMainFunc.Name = "flowLayoutPanelMainFunc";
-            this.flowLayoutPanelMainFunc.Padding = new System.Windows.Forms.Padding(0, 0, 0, 2);
-            this.flowLayoutPanelMainFunc.Size = new System.Drawing.Size(166, 68);
-            this.flowLayoutPanelMainFunc.TabIndex = 6;
+            this.flowLayoutPanelMain.AutoSize = true;
+            this.flowLayoutPanelMain.BackColor = System.Drawing.SystemColors.Control;
+            this.flowLayoutPanelMain.Controls.Add(this.StatusLabel);
+            this.flowLayoutPanelMain.Controls.Add(this.labelWallet);
+            this.flowLayoutPanelMain.Controls.Add(this.buttonConnect);
+            this.flowLayoutPanelMain.Location = new System.Drawing.Point(0, 0);
+            this.flowLayoutPanelMain.Margin = new System.Windows.Forms.Padding(0);
+            this.flowLayoutPanelMain.Name = "flowLayoutPanelMain";
+            this.flowLayoutPanelMain.Padding = new System.Windows.Forms.Padding(0, 0, 0, 2);
+            this.flowLayoutPanelMain.Size = new System.Drawing.Size(166, 68);
+            this.flowLayoutPanelMain.TabIndex = 6;
             // 
             // StatusLabel
             // 
@@ -280,7 +285,7 @@
             this.modulePanelCardsSelling.Controls.Add(this.buttonStylizedSellCards);
             this.modulePanelCardsSelling.Location = new System.Drawing.Point(0, 139);
             this.modulePanelCardsSelling.Margin = new System.Windows.Forms.Padding(0);
-            this.modulePanelCardsSelling.ModuleName = "Card selling";
+            this.modulePanelCardsSelling.ModuleName = "Cards";
             this.modulePanelCardsSelling.Name = "modulePanelCardsSelling";
             this.modulePanelCardsSelling.NameMargin = 2;
             this.modulePanelCardsSelling.Padding = new System.Windows.Forms.Padding(0, 20, 0, 2);
@@ -349,6 +354,45 @@
             this.closeToolStripMenuItemClose.Text = "Close";
             this.closeToolStripMenuItemClose.Click += new System.EventHandler(this.closeToolStripMenuItemClose_Click);
             // 
+            // modulePanelGiveaways
+            // 
+            this.modulePanelGiveaways.AutoSize = true;
+            this.modulePanelGiveaways.BackColor = System.Drawing.SystemColors.Control;
+            this.modulePanelGiveaways.Controls.Add(this.labelGiveawaysStatus);
+            this.modulePanelGiveaways.Controls.Add(this.buttonStylizedGiveawaysOpen);
+            this.modulePanelGiveaways.Location = new System.Drawing.Point(0, 210);
+            this.modulePanelGiveaways.Margin = new System.Windows.Forms.Padding(0);
+            this.modulePanelGiveaways.ModuleName = "Giveaways";
+            this.modulePanelGiveaways.Name = "modulePanelGiveaways";
+            this.modulePanelGiveaways.NameMargin = 2;
+            this.modulePanelGiveaways.Padding = new System.Windows.Forms.Padding(0, 20, 0, 2);
+            this.modulePanelGiveaways.Size = new System.Drawing.Size(166, 71);
+            this.modulePanelGiveaways.TabIndex = 9;
+            // 
+            // labelGiveawaysStatus
+            // 
+            this.labelGiveawaysStatus.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.labelGiveawaysStatus.Location = new System.Drawing.Point(2, 22);
+            this.labelGiveawaysStatus.Margin = new System.Windows.Forms.Padding(2, 2, 2, 0);
+            this.labelGiveawaysStatus.Name = "labelGiveawaysStatus";
+            this.labelGiveawaysStatus.Size = new System.Drawing.Size(155, 15);
+            this.labelGiveawaysStatus.TabIndex = 4;
+            this.labelGiveawaysStatus.Text = "Running";
+            // 
+            // buttonStylizedGiveawaysOpen
+            // 
+            this.buttonStylizedGiveawaysOpen.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(250)))));
+            this.buttonStylizedGiveawaysOpen.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.buttonStylizedGiveawaysOpen.Font = new System.Drawing.Font("Segoe UI", 12F);
+            this.buttonStylizedGiveawaysOpen.Location = new System.Drawing.Point(3, 39);
+            this.buttonStylizedGiveawaysOpen.Margin = new System.Windows.Forms.Padding(3, 2, 3, 0);
+            this.buttonStylizedGiveawaysOpen.Name = "buttonStylizedGiveawaysOpen";
+            this.buttonStylizedGiveawaysOpen.Size = new System.Drawing.Size(160, 30);
+            this.buttonStylizedGiveawaysOpen.TabIndex = 3;
+            this.buttonStylizedGiveawaysOpen.Text = "Open form";
+            this.buttonStylizedGiveawaysOpen.UseVisualStyleBackColor = true;
+            this.buttonStylizedGiveawaysOpen.Click += new System.EventHandler(this.buttonStylizedGiveawaysOpen_Click);
+            // 
             // SMAForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 17F);
@@ -367,12 +411,13 @@
             this.panelLeftSide.ResumeLayout(false);
             this.flowLayoutPanelPlugins.ResumeLayout(false);
             this.flowLayoutPanelPlugins.PerformLayout();
-            this.flowLayoutPanelMainFunc.ResumeLayout(false);
-            this.flowLayoutPanelMainFunc.PerformLayout();
+            this.flowLayoutPanelMain.ResumeLayout(false);
+            this.flowLayoutPanelMain.PerformLayout();
             this.ModulePanelFarm.ResumeLayout(false);
             this.modulePanelCardsSelling.ResumeLayout(false);
             this.panelBotListBack.ResumeLayout(false);
             this.contextMenuStripNotifyIcon.ResumeLayout(false);
+            this.modulePanelGiveaways.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -397,13 +442,16 @@
         private System.Windows.Forms.NotifyIcon notifyIconMain;
         private System.Windows.Forms.ContextMenuStrip contextMenuStripNotifyIcon;
         private System.Windows.Forms.ToolStripMenuItem closeToolStripMenuItemClose;
-        private System.Windows.Forms.FlowLayoutPanel flowLayoutPanelMainFunc;
+        private System.Windows.Forms.FlowLayoutPanel flowLayoutPanelMain;
         private ModulePanel ModulePanelFarm;
         private ButtonStylized buttonFarm;
         private ModulePanel modulePanelCardsSelling;
         private ButtonStylized buttonStylizedSellCards;
         public System.Windows.Forms.Label labelCardsSelling;
         public System.Windows.Forms.Label labelFarming;
+        private ModulePanel modulePanelGiveaways;
+        public System.Windows.Forms.Label labelGiveawaysStatus;
+        private ButtonStylized buttonStylizedGiveawaysOpen;
     }
 }
 

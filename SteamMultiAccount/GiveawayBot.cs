@@ -11,6 +11,7 @@ using SteamKit2;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Net;
+using System.Windows.Forms;
 
 namespace SteamMultiAccount
 {
@@ -18,16 +19,14 @@ namespace SteamMultiAccount
     {
         internal WebClient WebClient;
         internal BotConfig Config;
-        internal CookieCollection Cookie;
-        internal GiveawayBot(WebClient webClient,BotConfig config)
+        internal CookieCollection Cookie = new CookieCollection();
+        internal GiveawayBot(WebClient webClient, BotConfig config)
         {
             if (webClient == null || config == null)
             {
                 Logging.LogToFile("WebClient is null");
                 return;
             }
-
-            this.Cookie = new CookieCollection();
             this.WebClient = webClient;
             this.Config = config;
         }
@@ -36,11 +35,12 @@ namespace SteamMultiAccount
     }
     internal sealed class GameminerBot : GiveawayBot
     {
+        public const string Name = "GameMiner";
         const string GameMinerURL = "http://gameminer.net/";
         const string GameMinerHost = "gameminer.net";
-        const string GameMinerAPI = GameMinerURL+"api/giveaways/";
-        const string GameMinerWon = GameMinerURL+"giveaways/won/";
-        const string GameMinerCoal = GameMinerAPI+"coal";
+        const string GameMinerAPI = GameMinerURL + "api/giveaways/";
+        const string GameMinerWon = GameMinerURL + "giveaways/won/";
+        const string GameMinerCoal = GameMinerAPI + "coal";
         const string GameMinerGold = GameMinerAPI + "gold";
         const string GameMinerEnter = GameMinerURL + "giveaway/enter/";
 
@@ -48,15 +48,48 @@ namespace SteamMultiAccount
         private int iLevel;
         private string sUsername;
         private string xsrf;
-        internal GameminerBot(WebClient client,BotConfig config) : base(client,config)
+
+        internal bool isRunning { get; private set; }
+        private GiveawayForm form;
+        internal string status = "";
+        internal string Log = "";
+        internal GameminerBot(WebClient client, BotConfig config) : base(client, config)
         {
-            
+
+        }
+        public override string ToString()
+        {
+            return Name;
         }
 
+        internal async Task Run(GiveawayForm form)
+        {
+            this.form = form;
+            isRunning = await Init();
+            while (isRunning)
+            {
+                this.status = $"Running \n Coal: {iCoal} \n Level: {iLevel}";
+                form.Invoke(new MethodInvoker(delegate
+                {
+                    form.UpdateStatus(status);
+                }));
+                if (iCoal > 0)
+                    await CheckGiveaways();
+                await Task.Delay(15 * 60 * 1000); // Wait 15min
+                await RefreshProfile();
+            }
+        }
+        internal void Stop()
+        {
+            this.isRunning = false;
+            this.status = "";
+            StatusUpdate();
+        }
         internal async Task<bool> Init()
         {
             if (!await Login().ConfigureAwait(false))
                 return false;
+
             return true;
         }
         internal async Task<bool> RefreshProfile()
@@ -67,7 +100,7 @@ namespace SteamMultiAccount
             if (!string.IsNullOrWhiteSpace(resp.Headers.GetValues("set-cookie").ToArray()[0].ToString()))
             {
                 var cookies = resp.Headers.GetValues("set-cookie").ToList();
-                foreach(var cookie in cookies)
+                foreach (var cookie in cookies)
                 {
                     if (!cookie.Contains("_xsrf"))
                         continue;
@@ -95,10 +128,14 @@ namespace SteamMultiAccount
         }
         internal async Task CheckGiveaways()
         {
+            isRunning = true;
             int LastPage = 0;
             int Page = 1;
-            while (Page <= LastPage || LastPage == 0)
+            do
             {
+                if (!isRunning)
+                    return;
+
                 var Data = new Dictionary<string, string>()
                 {
                     {"page", Page.ToString()},
@@ -111,22 +148,23 @@ namespace SteamMultiAccount
                 };
                 JObject response = null;
                 for (byte i = 0; i < 3 && response == null; i++)
-                    response = await WebClient.GetJObject(new Uri(GameMinerCoal), Data,cookies: Cookie).ConfigureAwait(false);
+                    response = await WebClient.GetJObject(new Uri(GameMinerCoal), Data, cookies: Cookie).ConfigureAwait(false);
                 if (response == null)
                     continue;
                 List<Task> tasks = new List<Task>();
-                foreach(var giveaway in response["giveaways"])
+                foreach (var giveaway in response["giveaways"])
                 {
                     var code = giveaway["code"].Value<string>();
+                    var name = giveaway["game"]["name"].Value<string>();
                     if (string.IsNullOrWhiteSpace(code))
                         continue;
-                    await EnterGiveaway(code).ConfigureAwait(false);
-                    //tasks.Add(EnterGiveaway(code));
+                    //await EnterGiveaway(code).ConfigureAwait(false);
+                    tasks.Add(EnterGiveaway(code,name));
                 }
-                //await Task.WhenAll(tasks).ConfigureAwait(false);
+                await Task.WhenAll(tasks).ConfigureAwait(false);
                 if (LastPage == 0)
                     LastPage = response["last_page"].Value<int>();
-            }
+            } while (Page <= LastPage);
         }
 
         internal async Task<bool> Login()
@@ -145,12 +183,12 @@ namespace SteamMultiAccount
                 {"openidparams", nParams.GetAttributeValue("value","")},
                 {"nonce", nNonce.GetAttributeValue("value","")}
             };
-            var Hresp = await WebClient.GetContent(new Uri("https://steamcommunity.com/openid/login"), Data, HttpMethod.Post,null,false);
+            var Hresp = await WebClient.GetContent(new Uri("https://steamcommunity.com/openid/login"), Data, HttpMethod.Post, null, false);
             if (Hresp == null)
                 return false;
             var url = Hresp.Headers.Location;
             Hresp = null;
-            Hresp = await WebClient.GetContent(url,bAutoRedir: false);
+            Hresp = await WebClient.GetContent(url, bAutoRedir: false);
             if (Hresp == null)
                 return false;
             if (string.IsNullOrWhiteSpace(Hresp.Headers.GetValues("set-cookie").ToArray()[0]))
@@ -162,8 +200,10 @@ namespace SteamMultiAccount
 
             return await RefreshProfile().ConfigureAwait(false);
         }
-        internal async Task EnterGiveaway(string code)
+        internal async Task EnterGiveaway(string code,string name = "")
         {
+            if (!isRunning)
+                return;
             await Task.Delay(new Random().Next(1, 5) * 1000).ConfigureAwait(false); // Random delay 1-5 sec
             var data = new Dictionary<string, string>()
             {
@@ -171,16 +211,34 @@ namespace SteamMultiAccount
                 { "json", "true" }
             };
 
-            var response = await WebClient.GetJObject(new Uri(GameMinerEnter + code), data,HttpMethod.Post,Cookie);
+            var response = await WebClient.GetJObject(new Uri(GameMinerEnter + code), data, HttpMethod.Post, Cookie);
             if (response == null)
                 return;
             if (response["status"].Value<string>() != "ok")
             {
-                Logging.LogToFile("Cant enter to giveawat: " + response.ToString());
+                Log += $"Cant enter to giveaway \"{name}\" \n";
+                Logging.LogToFile("Cant enter to giveaway: " + response.ToString());
                 return;
             }
             iCoal = response["coal"].Value<int>();
-            Logging.LogToFile("Giveaway successfully entered, coal = " + iCoal);
+            Log += $"Entered to \"{name}\" \n";
+            StatusUpdate();
+        }
+
+        internal void StatusUpdate()
+        {
+            if (form == null)
+                return;
+            if (isRunning)
+            {
+                this.status = $"Running \n Coal: {iCoal} \n Level: {iLevel}";
+                form.Invoke(new MethodInvoker(delegate
+                {
+                    form.UpdateStatus(status, string.IsNullOrWhiteSpace(Log) ? "" : Log);
+                }));
+            }
+            else
+                form.Invoke(new MethodInvoker(delegate { form.UpdateStatus(string.Empty); }));
         }
     }
 }

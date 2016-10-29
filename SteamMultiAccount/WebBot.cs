@@ -67,17 +67,17 @@ namespace SteamMultiAccount
         internal const string SteamCommunityHOST = "steamcommunity.com";
 
         internal string sessionID;
-        internal WebBot()
+        internal WebBot(Bot bot)
         {
             GamesToFarmSolo = new List<Game>();
             GamesToFarmMulti = new List<Game>();
             alreadyHaveSubID = new List<ulong>();
             webClient = new WebClient();
+            this._bot = bot;
         }
 
-        internal async Task Init(Bot bot, string webAPIUserNonce)
+        internal async Task Init(string webAPIUserNonce)
         {
-            _bot = bot;
             steamID = _bot.steamClient.SteamID;
 
             sessionID = Convert.ToBase64String(Encoding.UTF8.GetBytes(steamID.ToString()));
@@ -134,6 +134,8 @@ namespace SteamMultiAccount
             webClient.cookieContainer.Add(new Cookie("sessionid", sessionID, "/", "." + SteamCommunityHOST));
             webClient.cookieContainer.Add(new Cookie("steamLogin", steamLogin, "/", "." + SteamCommunityHOST));
             webClient.cookieContainer.Add(new Cookie("steamLoginSecure", steamLoginSecure, "/", "." + SteamCommunityHOST));
+
+            gameminerBot = new GameminerBot(webClient, _bot.BotConfig);
 
             Initialized = true;
             //GiveawayBotInit().Forget();
@@ -580,7 +582,6 @@ namespace SteamMultiAccount
         internal async Task GiveawayBotInit()
         {
             _bot.Log("Gameminer bot starting...",LogType.Info);
-            gameminerBot = new GameminerBot(webClient, _bot.BotConfig);
             if (!await gameminerBot.Init().ConfigureAwait(false))
             {
                 _bot.Log("Fail", LogType.Info);
