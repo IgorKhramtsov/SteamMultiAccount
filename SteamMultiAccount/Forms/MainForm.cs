@@ -12,8 +12,8 @@ namespace SteamMultiAccount
 {
     public partial class SMAForm : Form
     {
-        internal const string ConfigDirectory = "config";
-        internal const string DebugDirectory = "debug";
+        internal const string ConfigDirectory = "config/";
+        internal const string DebugDirectory = "debug/";
         internal const string ServerList = ConfigDirectory + "/servers.bin";
         internal const string BotsData = ConfigDirectory + "/botData";
         private bool bWantClose = false;

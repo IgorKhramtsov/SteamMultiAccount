@@ -12,6 +12,7 @@ using System.Threading;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Diagnostics;
+using _2FAuthAndroidLibrary;
 using HSteamUser = Steamworks.HSteamUser;
 
 namespace SteamMultiAccount
@@ -78,7 +79,7 @@ namespace SteamMultiAccount
         internal        readonly SteamApps steamApps;
         internal        readonly CallbackManager callbackManager;
         internal        readonly WebBot webBot;
-        internal        readonly DotaBot dotaBot;
+        internal                 CSteamAuth steamAuth;
 
         internal        readonly CustomHandler customHandler;
 
@@ -112,7 +113,6 @@ namespace SteamMultiAccount
             steamApps = steamClient.GetHandler<SteamApps>();
             callbackManager = new CallbackManager(steamClient);
             webBot = new WebBot();
-            dotaBot = new DotaBot(logging,steamClient,callbackManager);
             customHandler = new CustomHandler();
 
             BotConfig = BotConfig.Load();
@@ -172,7 +172,12 @@ namespace SteamMultiAccount
             var config = BotConfig.Load();
             if (config != BotConfig)
                 BotConfig = config;
-
+            if (!string.IsNullOrWhiteSpace(BotConfig.SteamAuthCode))
+            {
+                steamAuth = new CSteamAuth();
+                if(File.Exists($"{SMAForm.ConfigDirectory}{BotName}.sga"))
+                    steamAuth.LoadAuthenticator(BotConfig.SteamAuthCode,$"{SMAForm.ConfigDirectory}{BotName}.sga");
+            }
             isRunning = true;
             Task.Run(() => CallbacksHandler()).Forget();
             Log("Connecting to steam...", LogType.Info);
@@ -601,7 +606,6 @@ namespace SteamMultiAccount
         internal async Task<string> PlayDota(string[] args)
         {
             Log("Launching DOTA 2...", LogType.Info);
-            await dotaBot.Initialize().ConfigureAwait(false);
             /*
             FarmGame(new Game(DotaBot.appID, "Dota 2")); // Running dota 2.
             await Task.Delay(5000); // Wait until game coordinator be ready.
@@ -695,7 +699,6 @@ namespace SteamMultiAccount
         }
         internal async void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
-            
             if (callback.Result != EResult.OK)
             {
                 if (callback.Result == EResult.AccountLogonDenied)
@@ -707,6 +710,12 @@ namespace SteamMultiAccount
                 }
                 else if (callback.Result == EResult.AccountLoginDeniedNeedTwoFactor)
                 {
+                    if (steamAuth != null)
+                    {
+                        twoFactorAuthCode = await steamAuth.Get2FACode();
+                        Restarting = true;
+                        return;
+                    }
                     Log("Please type your two factor auth code below.", LogType.Warning);
                     needTwoFactorAuthCode = true;
                     return;
