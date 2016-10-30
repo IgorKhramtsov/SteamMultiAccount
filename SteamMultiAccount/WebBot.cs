@@ -57,6 +57,7 @@ namespace SteamMultiAccount
         private SteamID steamID;
         internal WebClient webClient;
         internal GameminerBot gameminerBot;
+        internal SteamGiftsBot steamGiftsBot;
         public bool Initialized { get; private set; } = false;
         private Bot _bot;
         internal List<Game> GamesToFarmSolo;
@@ -136,6 +137,7 @@ namespace SteamMultiAccount
             webClient.cookieContainer.Add(new Cookie("steamLoginSecure", steamLoginSecure, "/", "." + SteamCommunityHOST));
 
             gameminerBot = new GameminerBot(webClient, _bot.BotConfig);
+            steamGiftsBot = new SteamGiftsBot(webClient, _bot.BotConfig);
 
             Initialized = true;
             //GiveawayBotInit().Forget();

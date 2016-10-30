@@ -321,6 +321,8 @@ namespace SteamMultiAccount
                     req.Body.games_played.Add(new CMsgClientGamesPlayed.GamePlayed() { game_id = new GameID(game.appID) });
                 steamClient.Send(req);
             }
+            // TODO: BUG use different strings for bots
+            // Create field with farmingLabel and change when (select other bot in list / Farm game function code running)
             InitializerForm.Invoke(new MethodInvoker(delegate {
                 InitializerForm.labelFarming.Text = CurrentFarming.Count == 0 ? "" : $"Farming {CurrentFarming.Count} of {GetGamesToFarmCount} games.";
             }));

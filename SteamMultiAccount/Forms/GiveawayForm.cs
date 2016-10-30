@@ -26,7 +26,10 @@ namespace SteamMultiAccount
         }
         protected override void OnShown(EventArgs e)
         {
+            listBoxSites.DisplayMember = "Name";
+            listBoxSites.ValueMember = "Name";
             listBoxSites.Items.Add(bot.gameminerBot);
+            listBoxSites.Items.Add(bot.steamGiftsBot);
             labelStatus.Text = "";
             labelStatus.Visible = false;
             base.OnShown(e);
@@ -44,21 +47,21 @@ namespace SteamMultiAccount
             if (listBoxSites.SelectedIndex == -1)
                 return;
 
+            GiveawayBot selectedBot = null;
             switch(listBoxSites.SelectedItem.ToString())
             {
                 case GameminerBot.Name:
-                    if (bot.gameminerBot.isRunning)
-                    {
-                        bot.gameminerBot.Stop();
-                        (sender as Button).Text = "Start";
-                    }
-                    else
-                    {
-                        bot.gameminerBot.Run(this).Forget();
-                        (sender as Button).Text = "Stop";
-                    }
+                    selectedBot = bot.gameminerBot;
+                    break;
+                case SteamGiftsBot.Name:
+                    selectedBot = bot.steamGiftsBot;
                     break;
             }
+            if(selectedBot == null)
+                throw new Exception("Cant recognize bot name");
+
+            selectedBot.StartStop().Forget();
+            this.buttonStartStop.Text = (this.buttonStartStop.Text == "Start" ? "Stop" : "Start");
         }
     }
 }
