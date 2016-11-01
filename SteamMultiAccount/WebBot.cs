@@ -237,7 +237,7 @@ namespace SteamMultiAccount
 
             if (jObject == null)
             {
-                _bot.Log($"Cant get price history even after {WebClient.MaxRetries} tries", LogType.Error);
+                _bot.Log($"Cant get price history of \"{item.name}\" even after {WebClient.MaxRetries} tries", LogType.Error);
                 return 0;
             }
 

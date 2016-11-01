@@ -50,6 +50,7 @@ namespace SteamMultiAccount
 
         /* Bot flags */
         internal                 bool isRunning, initialized, needAuthCode, needTwoFactorAuthCode, Restarting;
+        private                  bool _isFarming, _isSelling;
         private                  bool isManualDisconnect,authorizedInSteam;
         private                  bool isSteamWasRunning;
         private                  bool isLimited;
@@ -64,8 +65,7 @@ namespace SteamMultiAccount
         internal                 List<uint> AlreadyOwnedGames;
         internal                 List<Game> CurrentFarming;
         internal        readonly Dictionary<string, MyDelegate> Commands;
-        internal                 StatusEnum Status;
-        internal                 sWallet Wallet;
+        internal List<Task> CurrTasks = new List<Task>();
         /* Environment variables*/
         internal        readonly string BotName;
         internal        readonly string BotPath;
@@ -77,11 +77,15 @@ namespace SteamMultiAccount
         internal        readonly SteamUser steamUser;
         internal        readonly SteamFriends steamFriends;
         internal        readonly SteamApps steamApps;
+        internal                 sWallet Wallet;
         internal        readonly CallbackManager callbackManager;
         internal        readonly WebBot webBot;
         internal                 CSteamAuth steamAuth;
-
         internal        readonly CustomHandler customHandler;
+        /* Status strings */
+        private                  string sFarmStatus;
+        private                  string sCardsStatus;
+        internal                 StatusEnum Status;
 
         internal Bot(string botName,SMAForm initializer)
         {
@@ -321,10 +325,10 @@ namespace SteamMultiAccount
                     req.Body.games_played.Add(new CMsgClientGamesPlayed.GamePlayed() { game_id = new GameID(game.appID) });
                 steamClient.Send(req);
             }
-            // TODO: BUG use different strings for bots
-            // Create field with farmingLabel and change when (select other bot in list / Farm game function code running)
+            isFarming = CurrentFarming.Any();
+            this.FarmStatus = !CurrentFarming.Any() ? "Nothing to farm." : $"Farming {CurrentFarming.Count} of {GetGamesToFarmCount} games.";
             InitializerForm.Invoke(new MethodInvoker(delegate {
-                InitializerForm.labelFarming.Text = CurrentFarming.Count == 0 ? "" : $"Farming {CurrentFarming.Count} of {GetGamesToFarmCount} games.";
+                InitializerForm.UpdateStatus();
             }));
         }
         internal void FarmGame(Game game)
@@ -344,33 +348,41 @@ namespace SteamMultiAccount
         */
         internal async Task<string> Sellcards(string[] args = null)
         {
+            isSelling = true;
             List<WebBot.Item> Cards = await webBot.GetTraddableItems().ConfigureAwait(false);
-                
-            if (Cards == null)
+            
+            if (!Cards.Any())
+            {
+                isSelling = false;
                 return "Doesnt have any items to sell.";
+            }
             int CardsCount = Cards.Count;
             Log("We have " + CardsCount + " cards.", LogType.Info);
             if (isLimited)
             {
+                isSelling = false;
                 Log("But this account is limited.");
                 return "";
             }
 
             List<Task> getPrices = new List<Task>(Cards.Count);
-            var a = Cards.GetEnumerator();
             foreach (WebBot.Item item in Cards)
                 getPrices.Add(webBot.getPrice(item));
             await Task.WhenAll(getPrices).ConfigureAwait(false);
 
             List<WebBot.Item> Items = new List<WebBot.Item>(Cards);
             foreach (WebBot.Item Item in Items)
-                if (await webBot.SellItem(Item).ConfigureAwait(false))
-                {
-                    Cards.Remove(Item);
-                    InitializerForm.Invoke(new MethodInvoker(delegate {
-                        InitializerForm.labelCardsSelling.Text = (Cards.Count == 0) ? "All cards sold." : $"{CardsCount - Cards.Count} of {CardsCount} was sold.";
-                    }));
-                }
+                if (isSelling)
+                    if (await webBot.SellItem(Item).ConfigureAwait(false))
+                    {
+                        Cards.Remove(Item);
+                        this.CardsStatus = (Cards.Count == 0) ? "All cards sold." : $"{CardsCount - Cards.Count} of {CardsCount} was sold.";
+                        InitializerForm.Invoke(new MethodInvoker(delegate
+                        {
+                            InitializerForm.UpdateStatus();
+                        }));
+                    }
+            isSelling = false;
             return "";
         }
         internal async Task<string> ChangeNickname(string[] args)
@@ -509,12 +521,13 @@ namespace SteamMultiAccount
             }
             return callback;
         }
-        internal void Farm()
+        internal async Task Farm()
         {
             Log("Refresh games to farm", LogType.Info);
             Status = StatusEnum.RefreshGamesToFarm;
+            isFarming = true;
 
-            webBot.RefreshGamesToFarm().Wait();
+            await webBot.RefreshGamesToFarm().ConfigureAwait(false);
 
             if (!(webBot.GamesToFarmSolo.Any() || webBot.GamesToFarmMulti.Any())) // If we dont have anything to farm
             { 
@@ -999,6 +1012,33 @@ namespace SteamMultiAccount
                 else
                     return this.webBot.GamesToFarmSolo.Count;  // if GamesToFarmMulti = 1, we already add this game to Solo list
             }
+        }
+
+        public string FarmStatus {
+            get { return sFarmStatus; }
+            private set {
+                this.sFarmStatus = value;
+                InitializerForm.Invoke(new MethodInvoker(delegate {
+                    InitializerForm.UpdateStatus();
+                }));
+            }
+        }
+        public string CardsStatus
+        {
+            get { return sCardsStatus; }
+            private set
+            {
+                this.sCardsStatus = value;
+                InitializerForm.Invoke(new MethodInvoker(delegate {
+                    InitializerForm.UpdateStatus();
+                }));
+            }
+        }
+        public bool isSelling { get { return _isSelling; } private set { _isSelling = value; InitializerForm.Invoke(new MethodInvoker(delegate { InitializerForm.CheckButtonsStatus(); })); } }
+        public bool isFarming { get { return _isFarming; } private set { _isFarming = value; InitializerForm.Invoke(new MethodInvoker(delegate { InitializerForm.CheckButtonsStatus(); })); } }
+        public void StopSelling()
+        {
+            isSelling = false;
         }
     }
 

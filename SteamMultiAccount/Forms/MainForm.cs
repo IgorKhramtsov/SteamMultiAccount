@@ -211,21 +211,20 @@ namespace SteamMultiAccount
             LogBox.SelectionStart = LogBox.Text.Length;
             LogBox.ScrollToCaret();
         }
-        internal void UpdateStatus(Bot bot)
+        internal void UpdateStatus(Bot bot = null)
         {
             if (bot == null)
-            { 
-                StatusLabel.Text = string.Empty;
-                return;
-            }
-            if(bot.Status == StatusEnum.Farming)
-            { 
-                //string text = $"Farming {bot.CurrentFarming.Count} of {bot.GetGamesToFarmCount} games.";
-                //if (labelFarming.Text != text)
-                    //labelFarming.Text = text;
-            }
+                if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
+                {
+                    StatusLabel.Text = string.Empty;
+                    return;
+                }
+
             if (StatusLabel.Text != Bot.StatusString[(int)bot.Status])
                 StatusLabel.Text = Bot.StatusString[(int)bot.Status];
+
+            labelFarming.Text = bot.FarmStatus;
+            labelCardsSelling.Text = bot.CardsStatus;
         }
         internal void UpdateWallet(Bot bot)
         {
@@ -249,16 +248,17 @@ namespace SteamMultiAccount
             UpdateWallet(bot);
             CheckButtonsStatus(bot);
         }
-        internal void CheckButtonsStatus(Bot bot)
+        internal void CheckButtonsStatus(Bot bot = null)
         {
             if (bot == null)
-            {
-                buttonConnect.Visible = false;
-                ModulePanelFarm.Visible = false;
-                modulePanelCardsSelling.Visible = false;
-                buttonFarm.Visible = false;
-                return;
-            }
+                if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
+                {
+                    buttonConnect.Visible = false;
+                    ModulePanelFarm.Visible = false;
+                    modulePanelCardsSelling.Visible = false;
+                    buttonFarm.Visible = false;
+                    return;
+                }
             buttonConnect.Visible = true;
 
             bool isReady = (bot.Status != StatusEnum.Connecting && bot.initialized);
@@ -271,11 +271,12 @@ namespace SteamMultiAccount
             modulePanelGiveaways.Visible = isLoggedIn;
             labelCardsSelling.Visible = !(string.IsNullOrEmpty(labelCardsSelling.Text));
             labelFarming.Visible = !(string.IsNullOrEmpty(labelFarming.Text));
-
+            
             buttonConnect.Enabled = isReady;
-            buttonFarm.Enabled = (bot.Status != StatusEnum.RefreshGamesToFarm);
+            buttonFarm.Enabled = bot.Status != StatusEnum.RefreshGamesToFarm;
 
-            buttonFarm.Text = (bot.CurrentFarming.Any()) ? "Stop farm" : "Farm";
+            buttonStylizedSellCards.Text = bot.isSelling ? "Stop selling" : "Sell cards";
+            buttonFarm.Text = (bot.isFarming) ? "Stop farm" : "Farm";
             buttonConnect.Text = (isLoggedIn) ? "Disconnect" : "Connect";
         }
         public void BotListAdd(string botName)
@@ -317,9 +318,11 @@ namespace SteamMultiAccount
             Bot bot;
             if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
                 return;
-            (sender as Control).Enabled = false;
-            await bot.Sellcards().ConfigureAwait(false);
-            (sender as Control).Enabled = true;
+            if (bot.isSelling)
+                bot.StopSelling();
+            else
+                await bot.Sellcards().ConfigureAwait(false);
+            
         }
 
         private void buttonStylizedGiveawaysOpen_Click(object sender, EventArgs e)
