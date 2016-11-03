@@ -282,12 +282,16 @@ namespace SteamMultiAccount
             foreach (JToken jToken in jTokens_desc)
             {
                 iscard = false;
+                if (jToken["tags"] == null)
+                    continue;
+
                 foreach (JToken token in jToken["tags"])
-                    if (token["name"].Value<string>() == "Trading Card")
-                    {
-                        iscard = true;
-                        break;
-                    }
+                    if (token["name"] != null)
+                        if (token["name"].Value<string>() == "Trading Card")
+                        {
+                            iscard = true;
+                            break;
+                        }
 
                 if (iscard == false)
                     continue;
@@ -583,13 +587,8 @@ namespace SteamMultiAccount
         }
         internal async Task GiveawayBotInit()
         {
-            _bot.Log("Gameminer bot starting...",LogType.Info);
-            if (!await gameminerBot.Init().ConfigureAwait(false))
-            {
-                _bot.Log("Fail", LogType.Info);
-                return;
-            }
-            _bot.Log("Success", LogType.Info);
+            //_bot.Log("Gameminer bot starting...",LogType.Info);
+            //_bot.Log("Success", LogType.Info);
             _bot.Log("Checking giveaways...", LogType.Info);
             gameminerBot.CheckGiveaways().Forget();
         }

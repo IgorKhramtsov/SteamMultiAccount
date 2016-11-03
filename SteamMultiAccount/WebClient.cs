@@ -91,13 +91,13 @@ namespace SteamMultiAccount
             ret.LoadHtml(WebUtility.HtmlDecode(response));
             return ret;
         }
-        public async Task<JObject> GetJObject(Uri url, Dictionary<string, string> data = null, HttpMethod method = null, CookieCollection cookies = null)
+        public async Task<JObject> GetJObject(Uri url, Dictionary<string, string> data = null, HttpMethod method = null, CookieCollection cookies = null, Uri referer = null)
         {
             if (url == null)
                 return null;
 
             JObject ret = null;
-            HttpResponseMessage resp = await GetContent(url, data, method, cookies).ConfigureAwait(false);
+            HttpResponseMessage resp = await GetContent(url, data, method, cookies,referrer: referer).ConfigureAwait(false);
             if (!(resp.IsSuccessStatusCode && resp.Content != null))
             {
                 return null;

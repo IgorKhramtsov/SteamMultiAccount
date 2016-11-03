@@ -60,7 +60,7 @@ namespace SteamMultiAccount
             if(selectedBot == null)
                 throw new Exception("Cant recognize bot name");
 
-            selectedBot.StartStop().Forget();
+            selectedBot.StartStop(this).Forget();
             this.buttonStartStop.Text = (this.buttonStartStop.Text == "Start" ? "Stop" : "Start");
         }
     }
