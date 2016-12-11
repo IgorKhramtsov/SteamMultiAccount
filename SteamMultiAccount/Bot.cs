@@ -51,7 +51,7 @@ namespace SteamMultiAccount
         /* Bot flags */
         internal                 bool isRunning, initialized, needAuthCode, needTwoFactorAuthCode, Restarting;
         private                  bool _isFarming, _isSelling;
-        private                  bool isManualDisconnect,authorizedInSteam;
+        private                  bool isManualDisconnect, authorizedInSteam, invalidPass;
         private                  bool isSteamWasRunning;
         private                  bool isLimited;
         /* Temp strings */
@@ -700,14 +700,27 @@ namespace SteamMultiAccount
                 Start().Forget();
                 return;
             }
-            Log("Disconnected from steam.",LogType.Info);
+
+            if (invalidPass)
+            {
+                if (!string.IsNullOrWhiteSpace(BotConfig.loginKey))
+                    BotConfig.loginKey = ""; // Delete login key, its probably broken
+                else
+                {
+                    Log("Wait for captcha delay(25 min)...", LogType.Warning);
+                    await Task.Delay(25 * 60 * 1000); // Wait captcha delay
+                }
+            }
+
+            Log("Disconnected from steam.");
             if (!isManualDisconnect)
             {
-                Log("Reconnecting to steam", LogType.Info);
+                Log("Reconnecting to steam after 5 sec");
                 Thread.Sleep(5000);
                 Start().Forget();
                 return;
             }
+
             isRunning = false;
             initialized = true;
             Status = StatusEnum.Disabled;
@@ -784,6 +797,8 @@ namespace SteamMultiAccount
         }
         internal async void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
+            invalidPass = (callback.Result == EResult.InvalidPassword);
+
             Log("Logged off of steam (" + callback.Result + ")", LogType.Info);
         }
         internal async void OnMachinAuth(SteamUser.UpdateMachineAuthCallback callback)

@@ -28,7 +28,8 @@ namespace SteamMultiAccount
         {
             listBoxSites.DisplayMember = "Name";
             listBoxSites.ValueMember = "Name";
-            listBoxSites.Items.Add(bot.gameminerBot);
+            // Gameminer is dosent exist anymore
+            //listBoxSites.Items.Add(bot.gameminerBot);
             listBoxSites.Items.Add(bot.steamGiftsBot);
             labelStatus.Text = "";
             labelStatus.Visible = false;

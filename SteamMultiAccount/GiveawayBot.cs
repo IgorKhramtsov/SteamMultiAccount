@@ -70,7 +70,6 @@ namespace SteamMultiAccount
             {
                 form.UpdateStatus(status, string.IsNullOrWhiteSpace(Log) ? "" : Log);
             }));
-                //form.Invoke(new MethodInvoker(delegate { form.UpdateStatus(string.Empty); }));
         }
         internal virtual async Task<bool> Run(GiveawayForm form)
         {
@@ -137,7 +136,7 @@ namespace SteamMultiAccount
              * Becouse GameMiner(and maybe othe giveaway sites) can ban account with same ip 
              */
             if (await isLoggedIn().ConfigureAwait(false))
-                return true;
+                return await RefreshProfile().ConfigureAwait(false);
 
             Log = "Logging in";
             var response = await WebClient.GetDocument(new Uri(LoginURL)).ConfigureAwait(false);
@@ -176,7 +175,7 @@ namespace SteamMultiAccount
         internal virtual async Task<bool> RefreshProfile()
         {
             Log = "Refreshing profile";
-            var resp = await WebClient.GetContent(new Uri(MainURL)).ConfigureAwait(false);
+            var resp = await WebClient.GetContent(new Uri(MainURL),cookies: Cookie).ConfigureAwait(false);
             if (resp == null)
                 return false;
             IEnumerable<string> cookies;
@@ -193,15 +192,20 @@ namespace SteamMultiAccount
                 return false;
 
             Points = int.Parse(nPoints.InnerText);
-            Level = int.Parse(nLevel.InnerText);
+            int level;
+            if(!int.TryParse(nLevel.InnerText,out level))
+                level = int.Parse(nLevel.InnerText.Split(' ')[1]);
+            Level = level;
 
             Log = "Successfull";
             return true;
         }
         internal async Task<bool> isLoggedIn()
         {
-            var response = await WebClient.GetContent(new Uri(MainURL)).ConfigureAwait(false);
+            var response = await WebClient.GetContent(new Uri(MainURL),bAutoRedir: false).ConfigureAwait(false);
             if (response == null)
+                return false;
+            if (string.IsNullOrWhiteSpace(await response.Content.ReadAsStringAsync()))
                 return false;
 
             IEnumerable<string> cookies;
@@ -394,6 +398,13 @@ namespace SteamMultiAccount
     }
     internal class SteamGiftsBot : GiveawayBot
     {
+        internal struct Giveaway
+        {
+            internal string GameName;
+            internal string Code;
+            internal string Token;
+
+        }
         const string SteamGiftsURL = "https://www.steamgifts.com/";
         const string SteamGiftsHost = "steamgifts.com";
         const string SteamGiftsAjax = SteamGiftsURL + "ajax.php";
@@ -401,18 +412,40 @@ namespace SteamMultiAccount
         const string SteamGiftsSearch = SteamGiftsURL + "giveaways/search";
 
         public const string Name = "SteamGifts";
-
-        internal int Points { get; private set; }
-        internal int Level { get; private set; }
+        internal List<Giveaway> Giveaways = new List<Giveaway>();
 
         internal SteamGiftsBot(WebClient client, BotConfig config) : base(client,config)
         {
+            MainURL = SteamGiftsURL;
+            Host = SteamGiftsHost;
+            this.LoginURL = SteamGiftsURL + "?login";
             isLoggedInMark = "//a[@class='nav__sits']";
+            PointsMark = "//a[@href='/account']/span[1]";
+            LevelMark = "//a[@href='/account']/span[2]";
         }
         public override string ToString()
         {
             return Name;
         }
+        internal override async Task CheckGiveaways()
+        {
+            string WishListURL = MainURL + "giveaways/search?type=wishlist";
+            string GroupURL = MainURL + "giveaways/search?type=group";
+            string RegularURL = MainURL + "giveaways/search";
+            await ParseGiveaways(new Uri(WishListURL)).ConfigureAwait(false);
+        }
+        internal async Task ParseGiveaways(Uri url)
+        {
+            var Page = await WebClient.GetContent(url).ConfigureAwait(false);
+            
+            var DocData = DateTime.Now;
+            var PageDocument = await WebClient.GetDocument(Page).ConfigureAwait(false);
+            var nodes = PageDocument.DocumentNode.SelectNodes("//a[@class='giveaway__heading__name']");
+            foreach(var node in nodes)
+                Giveaways.Add(new Giveaway() { GameName = node.InnerText });
+            var DocElapsedTime = DocData.Subtract(DateTime.Now);
+        }
+        /*
         internal async Task<bool> Login()
         {
             string loginURL = SteamGiftsURL + "?login";
@@ -444,6 +477,8 @@ namespace SteamMultiAccount
             Cookie.Add(new Cookie("PHPSESSID", token, "/", "." + SteamGiftsHost));
             return await RefreshProfile().ConfigureAwait(false);
         }
+        */
+        /*
         internal async Task<bool> RefreshProfile()
         {
             var resp = await WebClient.GetContent(new Uri(SteamGiftsURL)).ConfigureAwait(false);
@@ -453,8 +488,8 @@ namespace SteamMultiAccount
             if (doc == null)
                 return false;
 
-            var nCoal = doc.DocumentNode.SelectSingleNode("//span[@class='nav__points']");
-            var nLevel = doc.DocumentNode.SelectSingleNode("//span[@class='nav__button nav__button--is-dropdown'].span[@title='*']");
+            var nCoal = doc.DocumentNode.SelectSingleNode("");
+            var nLevel = doc.DocumentNode.SelectSingleNode("");
 
             if (nCoal == null || nLevel == null)
                 return false;
@@ -463,5 +498,7 @@ namespace SteamMultiAccount
             Level = int.Parse(nLevel.InnerText.Substring("Level ".Length));
             return true;
         }
+        */
+
     }
 }
