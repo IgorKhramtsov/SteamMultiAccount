@@ -25,6 +25,12 @@ namespace SteamMultiAccount
         Farming,
         RefreshGamesToFarm
     }
+    public enum eTasks
+    {
+        SellingCards,
+        Farming,
+        Other = 0
+    }
     struct sWallet
     {
         internal ECurrencyCode Curency;
@@ -65,7 +71,7 @@ namespace SteamMultiAccount
         internal                 List<uint> AlreadyOwnedGames;
         internal                 List<Game> CurrentFarming;
         internal        readonly Dictionary<string, MyDelegate> Commands;
-        internal List<Task> CurrTasks = new List<Task>();
+        private                  Dictionary<Task,eTasks> CurrTasks = new Dictionary<Task, eTasks>();
         /* Environment variables*/
         internal        readonly string BotName;
         internal        readonly string BotPath;
@@ -769,6 +775,10 @@ namespace SteamMultiAccount
 
                 return;
             }
+            else if (callback.ClientSteamID.AccountType == EAccountType.AnonUser) // If logged on anon acc (creating account state)
+            {
+
+            }
             isLimited = callback.AccountFlags.HasFlag(EAccountFlags.LimitedUser);
 
             BotConfig.SetCellID(callback.CellID);
@@ -1054,6 +1064,25 @@ namespace SteamMultiAccount
         public void StopSelling()
         {
             isSelling = false;
+        }
+        public void AddTask(eTasks task)
+        {
+            switch(task)
+            {
+                case eTasks.Farming:
+                    CurrTasks.Add(Farm(), eTasks.Farming);
+                    break;
+                case eTasks.SellingCards:
+                    CurrTasks.Add(Sellcards(), eTasks.SellingCards);
+                    break;
+                default:
+                    Log("Undefined task", LogType.Error);
+                    break;
+            }
+        }
+        public bool HasTask(eTasks task)
+        {
+            return CurrTasks.ContainsValue(task);
         }
     }
 
