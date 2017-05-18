@@ -183,11 +183,11 @@ namespace SteamMultiAccount
             if (config != BotConfig)
                 BotConfig = config;
             if (!string.IsNullOrWhiteSpace(BotConfig.SteamAuthCode))
-            {
-                steamAuth = new CSteamAuth();
-                if(File.Exists($"{SMAForm.ConfigDirectory}{BotName}.sga"))
-                    steamAuth.LoadAuthenticator(BotConfig.SteamAuthCode,$"{SMAForm.ConfigDirectory}{BotName}.sga");
-            }
+                if ( File.Exists( $"{SMAForm.ConfigDirectory}{BotName}.sga" ) )
+                {
+                    steamAuth = new CSteamAuth();
+                    steamAuth.LoadAuthenticator( BotConfig.SteamAuthCode, $"{SMAForm.ConfigDirectory}{BotName}.sga" );
+                }
             isRunning = true;
             Task.Run(() => CallbacksHandler()).Forget();
             Log("Connecting to steam...", LogType.Info);
@@ -302,7 +302,7 @@ namespace SteamMultiAccount
                     CurrentFarming.Remove(game);
                 }
             /*If user authorized in steam client*/
-            if (Steamworks.SteamAPI.IsSteamRunning() && authorizedInSteam)
+            if ( Steamworks.SteamAPI.IsSteamRunning() && authorizedInSteam)
             {
                 if (Games.Count > 0)
                     Log("Farm games by game emulator");
@@ -693,7 +693,7 @@ namespace SteamMultiAccount
                 SentryFileHash = sentryHash
             });
             authCode = string.Empty;
-            twoFactorAuthCode = string.Empty;
+            //twoFactorAuthCode = string.Empty;
         }
         internal async void OnDisconnected(SteamClient.DisconnectedCallback callback)
         {
@@ -746,6 +746,14 @@ namespace SteamMultiAccount
                 {
                     if (steamAuth != null)
                     {
+                        if ( !string.IsNullOrWhiteSpace( twoFactorAuthCode ) )
+                        {
+                            steamAuth = null;
+                            Log( "Cant get two factor code from sga file." ,LogType.Warning);
+                            Log( "Please type your two factor auth code below.", LogType.Warning );
+                            needTwoFactorAuthCode = true;
+                            return;
+                        }
                         twoFactorAuthCode = await steamAuth.Get2FACode();
                         Restarting = true;
                         return;
@@ -756,13 +764,21 @@ namespace SteamMultiAccount
                 }
                 else if (callback.Result == EResult.InvalidPassword)
                 {
-                    if (!string.IsNullOrWhiteSpace(BotConfig.loginKey))
+                    string sentryPath = Path.Combine(SMAForm.BotsData, BotName + ".bin");
+                    if ( File.Exists( sentryPath ) )
+                    {
+                        File.Delete( sentryPath );
+                        Restarting = true;
+                        return;
+                    }
+
+                    if ( !string.IsNullOrWhiteSpace( BotConfig.loginKey ) )
                     {
                         BotConfig.loginKey = null;
                         BotConfig.Save();
                         return;
                     }
-                    Log("Invalid password.", LogType.Warning);
+                    Log("Invalid password. Maybe too many login failures from your network.", LogType.Warning);
                 }
                 else if (callback.Result == EResult.NoConnection)
                     Log("No connection. Try again later.", LogType.Warning);
@@ -866,11 +882,11 @@ namespace SteamMultiAccount
                 return;
             foreach (var friend in callback.FriendList)
             {
-                if (friend.Relationship == EFriendRelationship.RequestRecipient)
+                /*if (friend.Relationship == EFriendRelationship.RequestRecipient)
                 { 
                     steamFriends.AddFriend(friend.SteamID);
                     Log(steamFriends.GetFriendPersonaName(friend.SteamID)+" was added to friends list",LogType.Info);
-                }
+                }*/
                 /*
                 if (friend.SteamID.IsIndividualAccount) // Friend list
                     FriendList.Add(friend.SteamID);
@@ -979,7 +995,7 @@ namespace SteamMultiAccount
         internal void CheckSteamClient()
         {
             var ActiveUser = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE").OpenSubKey("Valve")?.OpenSubKey("Steam")?.OpenSubKey("ActiveProcess")?.GetValue("ActiveUser").ToString();
-            if (Steamworks.SteamAPI.IsSteamRunning() && !string.IsNullOrEmpty(ActiveUser) && ActiveUser != "0")
+            if ( Steamworks.SteamAPI.IsSteamRunning() && !string.IsNullOrEmpty(ActiveUser) && ActiveUser != "0")
             {
                 if (!isSteamWasRunning)
                 {

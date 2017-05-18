@@ -49,14 +49,18 @@
             this.modulePanelCardsSelling = new SteamMultiAccount.ModulePanel();
             this.labelCardsSelling = new System.Windows.Forms.Label();
             this.buttonStylizedSellCards = new SteamMultiAccount.ButtonStylized();
+            this.modulePanelGiveaways = new SteamMultiAccount.ModulePanel();
+            this.labelGiveawaysStatus = new System.Windows.Forms.Label();
+            this.buttonStylizedGiveawaysOpen = new SteamMultiAccount.ButtonStylized();
             this.panelBotListBack = new System.Windows.Forms.Panel();
             this.timerBotUpdate = new System.Windows.Forms.Timer(this.components);
             this.notifyIconMain = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStripNotifyIcon = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.closeToolStripMenuItemClose = new System.Windows.Forms.ToolStripMenuItem();
-            this.modulePanelGiveaways = new SteamMultiAccount.ModulePanel();
-            this.labelGiveawaysStatus = new System.Windows.Forms.Label();
-            this.buttonStylizedGiveawaysOpen = new SteamMultiAccount.ButtonStylized();
+            this.panelMain = new System.Windows.Forms.Panel();
+            this.menuStrip1 = new System.Windows.Forms.MenuStrip();
+            this.ComandsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.createBotsToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.contextMenuStripMain.SuspendLayout();
             this.panelRightSide.SuspendLayout();
             this.panelLeftSide.SuspendLayout();
@@ -64,9 +68,11 @@
             this.flowLayoutPanelMain.SuspendLayout();
             this.ModulePanelFarm.SuspendLayout();
             this.modulePanelCardsSelling.SuspendLayout();
+            this.modulePanelGiveaways.SuspendLayout();
             this.panelBotListBack.SuspendLayout();
             this.contextMenuStripNotifyIcon.SuspendLayout();
-            this.modulePanelGiveaways.SuspendLayout();
+            this.panelMain.SuspendLayout();
+            this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // BotList
@@ -80,7 +86,7 @@
             this.BotList.Location = new System.Drawing.Point(0, 0);
             this.BotList.Margin = new System.Windows.Forms.Padding(0);
             this.BotList.Name = "BotList";
-            this.BotList.Size = new System.Drawing.Size(119, 380);
+            this.BotList.Size = new System.Drawing.Size(119, 359);
             this.BotList.Sorted = true;
             this.BotList.TabIndex = 0;
             this.BotList.SelectedIndexChanged += new System.EventHandler(this.BotList_SelectedIndexChanged);
@@ -122,12 +128,12 @@
             this.panelRightSide.Controls.Add(this.LogBox);
             this.panelRightSide.Controls.Add(this.textBoxCommandLine);
             this.panelRightSide.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panelRightSide.Location = new System.Drawing.Point(286, 0);
+            this.panelRightSide.Location = new System.Drawing.Point(0, 25);
             this.panelRightSide.Margin = new System.Windows.Forms.Padding(0);
             this.panelRightSide.MinimumSize = new System.Drawing.Size(432, 360);
             this.panelRightSide.Name = "panelRightSide";
-            this.panelRightSide.Padding = new System.Windows.Forms.Padding(1, 1, 0, 0);
-            this.panelRightSide.Size = new System.Drawing.Size(438, 381);
+            this.panelRightSide.Padding = new System.Windows.Forms.Padding(287, 1, 0, 0);
+            this.panelRightSide.Size = new System.Drawing.Size(724, 360);
             this.panelRightSide.TabIndex = 1;
             // 
             // LogBox
@@ -136,12 +142,12 @@
             this.LogBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.LogBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.LogBox.HideSelection = false;
-            this.LogBox.Location = new System.Drawing.Point(1, 1);
+            this.LogBox.Location = new System.Drawing.Point(287, 1);
             this.LogBox.Margin = new System.Windows.Forms.Padding(0);
             this.LogBox.Name = "LogBox";
             this.LogBox.ReadOnly = true;
             this.LogBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
-            this.LogBox.Size = new System.Drawing.Size(437, 362);
+            this.LogBox.Size = new System.Drawing.Size(437, 341);
             this.LogBox.TabIndex = 1;
             this.LogBox.Text = "";
             this.LogBox.Click += new System.EventHandler(this.LogBox_Click);
@@ -152,7 +158,7 @@
             this.textBoxCommandLine.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.CustomSource;
             this.textBoxCommandLine.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.textBoxCommandLine.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.textBoxCommandLine.Location = new System.Drawing.Point(1, 363);
+            this.textBoxCommandLine.Location = new System.Drawing.Point(287, 342);
             this.textBoxCommandLine.Margin = new System.Windows.Forms.Padding(0);
             this.textBoxCommandLine.Name = "textBoxCommandLine";
             this.textBoxCommandLine.Size = new System.Drawing.Size(437, 18);
@@ -165,12 +171,12 @@
             this.panelLeftSide.Controls.Add(this.flowLayoutPanelPlugins);
             this.panelLeftSide.Controls.Add(this.panelBotListBack);
             this.panelLeftSide.Dock = System.Windows.Forms.DockStyle.Left;
-            this.panelLeftSide.Location = new System.Drawing.Point(0, 0);
+            this.panelLeftSide.Location = new System.Drawing.Point(0, 25);
             this.panelLeftSide.Margin = new System.Windows.Forms.Padding(0);
             this.panelLeftSide.MinimumSize = new System.Drawing.Size(250, 360);
             this.panelLeftSide.Name = "panelLeftSide";
             this.panelLeftSide.Padding = new System.Windows.Forms.Padding(0, 1, 0, 0);
-            this.panelLeftSide.Size = new System.Drawing.Size(286, 381);
+            this.panelLeftSide.Size = new System.Drawing.Size(286, 360);
             this.panelLeftSide.TabIndex = 2;
             // 
             // flowLayoutPanelPlugins
@@ -186,7 +192,7 @@
             this.flowLayoutPanelPlugins.Location = new System.Drawing.Point(120, 1);
             this.flowLayoutPanelPlugins.Margin = new System.Windows.Forms.Padding(0);
             this.flowLayoutPanelPlugins.Name = "flowLayoutPanelPlugins";
-            this.flowLayoutPanelPlugins.Size = new System.Drawing.Size(166, 380);
+            this.flowLayoutPanelPlugins.Size = new System.Drawing.Size(166, 359);
             this.flowLayoutPanelPlugins.TabIndex = 5;
             // 
             // flowLayoutPanelMain
@@ -316,44 +322,6 @@
             this.buttonStylizedSellCards.UseVisualStyleBackColor = true;
             this.buttonStylizedSellCards.Click += new System.EventHandler(this.buttonStylizedSellCards_Click);
             // 
-            // panelBotListBack
-            // 
-            this.panelBotListBack.BackColor = System.Drawing.SystemColors.ButtonShadow;
-            this.panelBotListBack.Controls.Add(this.BotList);
-            this.panelBotListBack.Dock = System.Windows.Forms.DockStyle.Left;
-            this.panelBotListBack.Location = new System.Drawing.Point(0, 1);
-            this.panelBotListBack.Name = "panelBotListBack";
-            this.panelBotListBack.Padding = new System.Windows.Forms.Padding(0, 0, 1, 0);
-            this.panelBotListBack.Size = new System.Drawing.Size(120, 380);
-            this.panelBotListBack.TabIndex = 1;
-            // 
-            // timerBotUpdate
-            // 
-            this.timerBotUpdate.Enabled = true;
-            this.timerBotUpdate.Interval = 1000;
-            this.timerBotUpdate.Tick += new System.EventHandler(this.timerBotUpdate_Tick);
-            // 
-            // notifyIconMain
-            // 
-            this.notifyIconMain.ContextMenuStrip = this.contextMenuStripNotifyIcon;
-            this.notifyIconMain.Text = "Steam Multi Account";
-            this.notifyIconMain.Visible = true;
-            this.notifyIconMain.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notifyIconMain_MouseDoubleClick);
-            // 
-            // contextMenuStripNotifyIcon
-            // 
-            this.contextMenuStripNotifyIcon.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.closeToolStripMenuItemClose});
-            this.contextMenuStripNotifyIcon.Name = "contextMenuStripNotifyIcon";
-            this.contextMenuStripNotifyIcon.Size = new System.Drawing.Size(104, 26);
-            // 
-            // closeToolStripMenuItemClose
-            // 
-            this.closeToolStripMenuItemClose.Name = "closeToolStripMenuItemClose";
-            this.closeToolStripMenuItemClose.Size = new System.Drawing.Size(103, 22);
-            this.closeToolStripMenuItemClose.Text = "Close";
-            this.closeToolStripMenuItemClose.Click += new System.EventHandler(this.closeToolStripMenuItemClose_Click);
-            // 
             // modulePanelGiveaways
             // 
             this.modulePanelGiveaways.AutoSize = true;
@@ -393,13 +361,87 @@
             this.buttonStylizedGiveawaysOpen.UseVisualStyleBackColor = true;
             this.buttonStylizedGiveawaysOpen.Click += new System.EventHandler(this.buttonStylizedGiveawaysOpen_Click);
             // 
+            // panelBotListBack
+            // 
+            this.panelBotListBack.BackColor = System.Drawing.SystemColors.ButtonShadow;
+            this.panelBotListBack.Controls.Add(this.BotList);
+            this.panelBotListBack.Dock = System.Windows.Forms.DockStyle.Left;
+            this.panelBotListBack.Location = new System.Drawing.Point(0, 1);
+            this.panelBotListBack.Name = "panelBotListBack";
+            this.panelBotListBack.Padding = new System.Windows.Forms.Padding(0, 0, 1, 0);
+            this.panelBotListBack.Size = new System.Drawing.Size(120, 359);
+            this.panelBotListBack.TabIndex = 1;
+            // 
+            // timerBotUpdate
+            // 
+            this.timerBotUpdate.Enabled = true;
+            this.timerBotUpdate.Interval = 1000;
+            this.timerBotUpdate.Tick += new System.EventHandler(this.timerBotUpdate_Tick);
+            // 
+            // notifyIconMain
+            // 
+            this.notifyIconMain.ContextMenuStrip = this.contextMenuStripNotifyIcon;
+            this.notifyIconMain.Text = "Steam Multi Account";
+            this.notifyIconMain.Visible = true;
+            this.notifyIconMain.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notifyIconMain_MouseDoubleClick);
+            // 
+            // contextMenuStripNotifyIcon
+            // 
+            this.contextMenuStripNotifyIcon.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.closeToolStripMenuItemClose});
+            this.contextMenuStripNotifyIcon.Name = "contextMenuStripNotifyIcon";
+            this.contextMenuStripNotifyIcon.Size = new System.Drawing.Size(104, 26);
+            // 
+            // closeToolStripMenuItemClose
+            // 
+            this.closeToolStripMenuItemClose.Name = "closeToolStripMenuItemClose";
+            this.closeToolStripMenuItemClose.Size = new System.Drawing.Size(103, 22);
+            this.closeToolStripMenuItemClose.Text = "Close";
+            this.closeToolStripMenuItemClose.Click += new System.EventHandler(this.closeToolStripMenuItemClose_Click);
+            // 
+            // panelMain
+            // 
+            this.panelMain.Controls.Add(this.panelLeftSide);
+            this.panelMain.Controls.Add(this.panelRightSide);
+            this.panelMain.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panelMain.Location = new System.Drawing.Point(0, 0);
+            this.panelMain.Name = "panelMain";
+            this.panelMain.Padding = new System.Windows.Forms.Padding(0, 25, 0, 0);
+            this.panelMain.Size = new System.Drawing.Size(724, 381);
+            this.panelMain.TabIndex = 2;
+            // 
+            // menuStrip1
+            // 
+            this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.ComandsToolStripMenuItem});
+            this.menuStrip1.Location = new System.Drawing.Point(0, 0);
+            this.menuStrip1.Name = "menuStrip1";
+            this.menuStrip1.Size = new System.Drawing.Size(724, 24);
+            this.menuStrip1.TabIndex = 3;
+            this.menuStrip1.Text = "menuStrip1";
+            // 
+            // ComandsToolStripMenuItem
+            // 
+            this.ComandsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.createBotsToolStripMenuItem1});
+            this.ComandsToolStripMenuItem.Name = "ComandsToolStripMenuItem";
+            this.ComandsToolStripMenuItem.Size = new System.Drawing.Size(70, 20);
+            this.ComandsToolStripMenuItem.Text = "Comands";
+            // 
+            // createBotsToolStripMenuItem1
+            // 
+            this.createBotsToolStripMenuItem1.Name = "createBotsToolStripMenuItem1";
+            this.createBotsToolStripMenuItem1.Size = new System.Drawing.Size(152, 22);
+            this.createBotsToolStripMenuItem1.Text = "Create Bots";
+            this.createBotsToolStripMenuItem1.Click += new System.EventHandler(this.createBotsToolStripMenuItem1_Click);
+            // 
             // SMAForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 17F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(724, 381);
-            this.Controls.Add(this.panelRightSide);
-            this.Controls.Add(this.panelLeftSide);
+            this.Controls.Add(this.menuStrip1);
+            this.Controls.Add(this.panelMain);
             this.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.MinimumSize = new System.Drawing.Size(740, 420);
             this.Name = "SMAForm";
@@ -415,10 +457,14 @@
             this.flowLayoutPanelMain.PerformLayout();
             this.ModulePanelFarm.ResumeLayout(false);
             this.modulePanelCardsSelling.ResumeLayout(false);
+            this.modulePanelGiveaways.ResumeLayout(false);
             this.panelBotListBack.ResumeLayout(false);
             this.contextMenuStripNotifyIcon.ResumeLayout(false);
-            this.modulePanelGiveaways.ResumeLayout(false);
+            this.panelMain.ResumeLayout(false);
+            this.menuStrip1.ResumeLayout(false);
+            this.menuStrip1.PerformLayout();
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -452,6 +498,10 @@
         private ModulePanel modulePanelGiveaways;
         public System.Windows.Forms.Label labelGiveawaysStatus;
         private ButtonStylized buttonStylizedGiveawaysOpen;
+        private System.Windows.Forms.Panel panelMain;
+        private System.Windows.Forms.MenuStrip menuStrip1;
+        private System.Windows.Forms.ToolStripMenuItem ComandsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem createBotsToolStripMenuItem1;
     }
 }
 

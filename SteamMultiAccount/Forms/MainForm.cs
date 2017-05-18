@@ -12,10 +12,10 @@ namespace SteamMultiAccount
 {
     public partial class SMAForm : Form
     {
-        internal const string ConfigDirectory = "config/";
-        internal const string DebugDirectory = "debug/";
-        internal const string ServerList = ConfigDirectory + "/servers.bin";
-        internal const string BotsData = ConfigDirectory + "/botData";
+        internal const string ConfigDirectory = "config\\";
+        internal const string DebugDirectory = "debug\\";
+        internal const string ServerList = ConfigDirectory + "\\servers.bin";
+        internal const string BotsData = ConfigDirectory + "\\botData";
         private bool bWantClose = false;
         private FormWindowState _LastState = FormWindowState.Normal;
         public SMAForm()
@@ -214,7 +214,7 @@ namespace SteamMultiAccount
         internal void UpdateStatus(Bot bot = null)
         {
             if (bot == null)
-                if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
+                if (BotList.SelectedItem == null || !Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
                 {
                     StatusLabel.Text = string.Empty;
                     return;
@@ -251,7 +251,7 @@ namespace SteamMultiAccount
         internal void CheckButtonsStatus(Bot bot = null)
         {
             if (bot == null)
-                if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
+                if (BotList.SelectedItem == null || !Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
                 {
                     buttonConnect.Visible = false;
                     ModulePanelFarm.Visible = false;
@@ -333,6 +333,11 @@ namespace SteamMultiAccount
             GiveawayForm giveawayForm = new GiveawayForm(this, bot.webBot);
             giveawayForm.Show();
         }
+
+        private void createBotsToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            //TODO: Создание формы с настройками создания ботов (Имена ботов - рандомные ники, или один и тот же с добавлением цифр)
+        }
     }
     class ModulePanel : FlowLayoutPanel
     {
@@ -369,7 +374,7 @@ namespace SteamMultiAccount
             e.Graphics.DrawLine(linePen, new PointF(measureString.Width + 4 + nameMargin, measureString.Height/2), new PointF(e.ClipRectangle.Width, measureString.Height / 2));
         }
     }
-    class ButtonStylized:Button
+    internal class ButtonStylized:Button
     {
         public ButtonStylized()
         {
