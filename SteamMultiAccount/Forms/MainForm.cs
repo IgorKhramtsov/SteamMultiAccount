@@ -268,7 +268,8 @@ namespace SteamMultiAccount
 
             ModulePanelFarm.Visible = isLoggedIn;
             modulePanelCardsSelling.Visible = isLoggedIn;
-            modulePanelGiveaways.Visible = isLoggedIn;
+            /* Not tested, dont use in this build */
+            modulePanelGiveaways.Visible = /*isLoggedIn*/ false;
             labelCardsSelling.Visible = !(string.IsNullOrEmpty(labelCardsSelling.Text));
             labelFarming.Visible = !(string.IsNullOrEmpty(labelFarming.Text));
 

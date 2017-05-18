@@ -130,7 +130,7 @@ namespace SteamMultiAccount
             callbackManager.Subscribe<SteamUser.WalletInfoCallback>(OnWalletInfo);
 
             //callbackManager.Subscribe<SteamFriends.FriendMsgCallback>(OnFriendMessage); Dont handle messages
-            callbackManager.Subscribe<SteamFriends.FriendsListCallback>(OnFriendList);
+            //callbackManager.Subscribe<SteamFriends.FriendsListCallback>(OnFriendList); Dont add everybody
 
             callbackManager.Subscribe<SteamApps.GuestPassListCallback>(OnGuestPass);
             callbackManager.Subscribe<SteamApps.FreeLicenseCallback>(OnFreeLicense);

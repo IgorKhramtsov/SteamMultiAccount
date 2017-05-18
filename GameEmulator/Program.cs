@@ -11,9 +11,11 @@ namespace GameEmulator
         static extern int EmptyWorkingSet(IntPtr hwProc);
         static void Main(string[] args)
         {
+            if ( string.IsNullOrWhiteSpace( args[0] ) )
+                return;
             long appID = long.Parse(args[0]);
             Environment.SetEnvironmentVariable("SteamAppId", appID.ToString());
-            if(!SteamAPI.Init())
+            if( !SteamAPI.IsSteamRunning() || !SteamAPI.Init())
             {
                 return; // If we cant initilize steam api, close the program
             }
