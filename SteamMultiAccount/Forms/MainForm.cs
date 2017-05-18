@@ -44,7 +44,8 @@ namespace SteamMultiAccount
 
         private async Task StartBots()
         {
-            if (!Directory.Exists(ConfigDirectory))
+            UpdateAll( null );
+            if ( !Directory.Exists( ConfigDirectory ) )
                 return;
             if(Directory.GetFiles(ConfigDirectory,"*.json").Length > 0)
             {
@@ -160,6 +161,8 @@ namespace SteamMultiAccount
                 if (string.IsNullOrEmpty(textBoxCommandLine.Text))
                     return;
                 Bot bot;
+                if ( BotList.SelectedItem == null )
+                    return;
                 if (!Bot.Bots.TryGetValue(BotList.SelectedItem.ToString(), out bot))
                     return;
                 bot.Log(textBoxCommandLine.Text, LogType.User);
@@ -257,6 +260,7 @@ namespace SteamMultiAccount
                 ModulePanelFarm.Visible = false;
                 modulePanelCardsSelling.Visible = false;
                 buttonFarm.Visible = false;
+                modulePanelGiveaways.Visible = false;
                 return;
             }
             buttonConnect.Visible = true;
@@ -267,6 +271,7 @@ namespace SteamMultiAccount
             bool isFarming = (bot.Status == StatusEnum.Farming);
 
             ModulePanelFarm.Visible = isLoggedIn;
+            buttonFarm.Visible = isLoggedIn;
             modulePanelCardsSelling.Visible = isLoggedIn;
             /* Not tested, dont use in this build */
             modulePanelGiveaways.Visible = /*isLoggedIn*/ false;
